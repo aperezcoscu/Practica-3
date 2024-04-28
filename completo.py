@@ -2,7 +2,6 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import requests
 import locale
-import mibian
 import numpy as np
 from datetime import datetime
 
