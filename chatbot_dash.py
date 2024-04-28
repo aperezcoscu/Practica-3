@@ -2,6 +2,12 @@ import dash
 from dash import html, dcc, Input, Output, callback, State
 import dash_bootstrap_components as dbc
 
+
+# Estilos chatbot
+
+
+
+
 # Inicialización de la aplicación Dash con `suppress_callback_exceptions` habilitado
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
@@ -9,7 +15,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 app.layout = html.Div([
     dbc.Button("Chat", id="chatbot-toggle-button", className="btn-circle", n_clicks=0, style={"position": "fixed", "bottom": "15px", "right": "15px", "z-index": "1000000"}),
     dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Chat con GVC Bot")),
+        dbc.ModalHeader(dbc.ModalTitle("Chat con GVC Bot", className="text-white"), className="bg-primary"),
         dbc.ModalBody([
             html.Div(id="messages-container", style={"height": "300px", "overflow-y": "auto"}),
             html.Div([
@@ -40,7 +46,7 @@ def manage_chatbot(chat_button_clicks, call_click, put_click, is_open):
 
     if button_id == "chatbot-toggle-button":
         if chat_button_clicks:
-            welcome_message = dbc.Card(dbc.CardBody("Bienvenidos a la visualización de datos"), color="info", outline=True, className="mb-2")
+            welcome_message = dbc.Card(dbc.CardBody("Bienvenidos a la visualización de datos"), className="mb-1")
             follow_up_message = dbc.Card(dbc.CardBody("¿En qué puedo ayudaros?"), color="info", outline=True, className="mb-2")
             options = [dbc.Button("Qué es una call", id="option-call", color="primary", className="me-1"),
                        dbc.Button("Qué es una put", id="option-put", color="primary")]
@@ -48,7 +54,7 @@ def manage_chatbot(chat_button_clicks, call_click, put_click, is_open):
         return is_open, dash.no_update, dash.no_update
     elif button_id in ["option-call", "option-put"]:
         if button_id == "option-call":
-            response_message = dbc.Card(dbc.CardBody("Una call es una opción de compra"), color="secondary", outline=True)
+            response_message = dbc.Card(dbc.CardBody("Una call es una opción de compra"), color="terciary", outline=True)
         else:
             response_message = dbc.Card(dbc.CardBody("Una put es una opción de venta"), color="secondary", outline=True)
         options = dash.no_update  # Mantén los botones sin cambios
