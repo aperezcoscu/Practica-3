@@ -9,6 +9,8 @@ from datetime import datetime
 from dash.exceptions import PreventUpdate
 
 
+### Estilos 
+
 # Estilos modernos para el sidebar y botones
 sidebar_style = {
     'position': 'fixed',
@@ -19,10 +21,10 @@ sidebar_style = {
     'padding': '2rem 1rem',
     'background-color': '#2a3f5f',  # Gris azulado oscuro
     'color': 'white',
-    'border-radius': '0 25px 25px 0'  # Bordes redondeados en el lado derecho
+    'border-radius': '0 25px 25px 0'  
 }
 
-# Estilos para los botones
+# Estilos para los botones del menú
 button_style = {
     'text-align': 'left',
     'border': 'none',
@@ -58,7 +60,6 @@ content_style = {
 
 
 # Estilos chatbot
-# Estilos para el contenedor de mensajes del chatbot
 messages_container_style = {
     "display": "flex",
     "flex-direction": "column",
@@ -140,6 +141,7 @@ unique_dates = df['Fecha'].unique()
 # Asumiendo que 'messages' es una variable global o de sesión que almacena los mensajes
 messages = []
 
+# Dash app
 app.layout = html.Div([
     html.Div([
         html.H2('Perfil de volatilidad implícita', style={'margin-bottom': '30px'}),
@@ -243,7 +245,7 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     return [call_style, put_style, fig]
 
 
-
+# Chatbot
 @app.callback(
     [Output("chatbot-container", "is_open"),
      Output("messages-container", "children"),
