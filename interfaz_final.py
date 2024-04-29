@@ -5,9 +5,8 @@ from dash import html, dcc, Input, Output, State, callback
 import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
-
-# Establecer estilos de la aplicación y componentes externos
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+from datetime import datetime
+from dash.exceptions import PreventUpdate
 
 
 # Estilos modernos para el sidebar y botones
@@ -59,7 +58,6 @@ content_style = {
 
 
 # Estilos chatbot
-
 # Estilos para el contenedor de mensajes del chatbot
 messages_container_style = {
     "display": "flex",
@@ -68,8 +66,8 @@ messages_container_style = {
     "overflow-y": "auto"
 }
 
-
-message_button_style =  {
+# Estilos para los botones y mensajes del chatbot
+message_button_style = {
     'font-size': '14px',
     'margin': '5px',
     'position': 'relative',
@@ -86,23 +84,8 @@ message_button_style =  {
     'border-radius': '0px 8px 8px 8px',
 }
 
-option_button_style = {
-    'font-size': '16px',  # Tamaño de la fuente
-    'margin': '2px',  # Eliminar margen para evitar separación del borde izquierdo
-    'border': '1px solid #4a8eda',  # Borde con color azul claro
-    'background-color': 'white',  # Fondo blanco
-    'color': '#2a3f5f',  # Texto en gris azulado oscuro
-    'text-align': 'left',  # Alineación del texto a la izquierda
-    'border-radius': '10px',  # Bordes redondeados
-    'cursor': 'pointer',  # Cursor en forma de puntero para indicar que es clickeable
-    'transition': 'background-color 0.3s, color 0.3s',  # Transición suave para el color de fondo y texto
-    'display': 'inline-block',  # Display como bloque en línea para ajustar el ancho al contenido
-    'white-space': 'nowrap'  # Evitar que el texto se envuelva a una nueva línea
-}
-
-
 user_message_style = {
-    'align-self': 'flex-end',  # Alinea el mensaje a la derecha en el contenedor flex
+    'align-self': 'flex-end',
     'position': 'relative',
     'word-break': 'break-all',
     'box-sizing': 'border-box',
@@ -113,7 +96,7 @@ user_message_style = {
     'color': 'rgb(255, 255, 255)',
     'display': 'inline-flex',
     'align-items': 'flex-start',
-    'border-radius': '8px 8px 0px 8px',  # Cambiar el borde redondeado
+    'border-radius': '8px 8px 0px 8px',
     'max-width': '284px',
     'align-content': 'stretch',
     'flex-wrap': 'nowrap',
@@ -121,6 +104,34 @@ user_message_style = {
     'margin-top': '5px',
     'font-size': '14px',
 }
+
+option_button_style = {
+    'font-size': '12px',
+    'margin': '2px 10px',  # Agrega márgenes a los lados
+    'border': '1px solid #4a8eda',
+    'background-color': 'white',
+    'color': '#2a3f5f',
+    'text-align': 'center',
+    'border-radius': '10px',
+    'cursor': 'pointer',
+    'transition': 'background-color 0.3s, color 0.3s',
+    'display': 'block',  # Permite que el botón sea tratado como bloque
+    'width': '100%',  # El botón ocupa el 100% del ancho del contenedor
+    'box-sizing': 'border-box',  # Asegura que el padding y border estén incluidos en el ancho
+}
+
+# Estilo para el contenedor de las opciones
+options_container_style = {
+    'display': 'flex',
+    'flex-direction': 'column',
+    'align-items': 'center',  # Asegura que los botones estén alineados al centro
+    'justify-content': 'center',
+    'gap': '5px',  # Ajusta el espacio entre botones
+}
+
+
+# Establecer estilos de la aplicación y componentes externos
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
 # Leer el archivo CSV
 df = pd.read_csv('volatilidades.csv')
@@ -153,19 +164,25 @@ app.layout = html.Div([
     ], style=content_style),
     
     # Elementos del Chatbot
-    dbc.Button("Chat", id="chatbot-toggle-button", className="btn-circle", n_clicks=0, style={"position": "fixed", "bottom": "15px", "right": "15px", "z-index": "1000000"}),
+    dbc.Button("Chat", id="chatbot-toggle-button", className="btn-circle", n_clicks=0,
+               style={"position": "fixed", "bottom": "15px", "right": "15px", "z-index": "1000000"}),
     dbc.Modal([
-        dbc.ModalHeader(dbc.ModalTitle("Chat con GVC Bot")),
+        dbc.ModalHeader(dbc.ModalTitle("Volatility Chatbot")),
         dbc.ModalBody([
-            html.Div(id="messages-container", style=messages_container_style),
+            html.Div(id="messages-container", style=messages_container_style, **{"data-last-update": "0"}),
             html.Div([
-                dbc.Button("Qué es una call", id="option-call", n_clicks=0, style=option_button_style),
-                dbc.Button("Qué es una put", id="option-put", n_clicks=0, style=option_button_style)
-            ], id="options-container", style={"display": "flex", "flex-direction": "column"})
+                dbc.Button("Explicar la sonrisa de volatilidad", id="option-call", n_clicks=0, style=option_button_style),
+                dbc.Button("Importancia de la volatilidad implícita", id="option-put", n_clicks=0, style=option_button_style)
+            ], id="options-container", style=options_container_style),
+            html.Div([
+                dbc.Button("Sí", id="more-info-yes", n_clicks=0, style=option_button_style),
+                dbc.Button("No", id="more-info-no", n_clicks=0, style=option_button_style)
+            ], id="more-info-options", style={"display": "none"})
         ]),
-        dbc.ModalFooter(dbc.Input(placeholder="Escribe un mensaje aquí", type="text", id="user-input-text")),
+        dbc.ModalFooter()
     ], id="chatbot-container", is_open=False, style={"position": "fixed", "bottom": "90px", "right": "15px", "width": "350px"})
 ])
+
 
 # Callbacks de la aplicación
 @app.callback(
@@ -226,48 +243,72 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     return [call_style, put_style, fig]
 
 
-# Callbacks para el chatbot
-@app.callback(
-    Output("chatbot-container", "is_open"),
-    Output("messages-container", "children"),
-    Output("options-container", "children"),
-    Input("chatbot-toggle-button", "n_clicks"),
-    Input("option-call", "n_clicks"),
-    Input("option-put", "n_clicks"),
-    State("chatbot-container", "is_open")
-)
 
-def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, is_open):
+@app.callback(
+    [Output("chatbot-container", "is_open"),
+     Output("messages-container", "children"),
+     Output("options-container", "style"),
+     Output("more-info-options", "style"),
+     Output("messages-container", "data-last-update")],
+    [Input("chatbot-toggle-button", "n_clicks"),
+     Input("option-call", "n_clicks"),
+     Input("option-put", "n_clicks"),
+     Input("more-info-yes", "n_clicks"),
+     Input("more-info-no", "n_clicks")],
+    [State("chatbot-container", "is_open")],
+    prevent_initial_call=True
+)
+def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, more_info_yes_clicks, more_info_no_clicks, is_open):
     global messages
     ctx = dash.callback_context
-    
+
     if not ctx.triggered:
-        button_id = "No clicks yet"
-    else:
-        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        raise PreventUpdate
 
-    if button_id == "chatbot-toggle-button" and chat_button_clicks:
-        welcome_message = dbc.Card(dbc.CardBody("Bienvenidos a la visualización de datos"), style=message_button_style)
-        follow_up_message = dbc.Card(dbc.CardBody("¿En qué puedo ayudaros?"), style=message_button_style)
-        messages = [welcome_message, follow_up_message]  # Iniciar mensajes
-        options = [
-            dbc.Button("Qué es una call", id="option-call", style=option_button_style),
-            dbc.Button("Qué es una put", id="option-put", style=option_button_style)
-        ]
-        return not is_open, messages, options
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    elif button_id in ["option-call", "option-put"]:
-        user_query = "Una call es una opción de compra" if button_id == "option-call" else "Una put es una opción de venta"
-        button_text = "Qué es una call" if button_id == "option-call" else "Qué es una put"
-        user_button_message = dbc.Card(dbc.CardBody(button_text), style=user_message_style)
-        bot_response_message = dbc.Card(dbc.CardBody(user_query), style=message_button_style)
-        messages.append(user_button_message)  # Agrega el texto del botón como mensaje del usuario
-        messages.append(bot_response_message)  # Agrega la respuesta del bot
-        options = []  # Vacía las opciones después de la selección
-        return True, messages, options
+    if button_id == "chatbot-toggle-button":
+        if is_open:
+            messages = []  # Reiniciar mensajes
+            return False, [], {"display": "none"}, {"display": "none"}, str(datetime.now().timestamp())
+        else:
+            welcome_message = dbc.Card(dbc.CardBody("Bienvenidos a nuestro chat sobre volatilidad implícita"), style=message_button_style)
+            follow_up_message = dbc.Card(dbc.CardBody("¿En qué tema específico te gustaría profundizar?"), style=message_button_style)
+            messages = [welcome_message, follow_up_message]
+            return True, messages, {"display": "flex"}, {"display": "none"}, str(datetime.now().timestamp())
 
-    # Si no se presionó ninguno de los botones designados, simplemente devuelve el estado actual
-    return is_open, messages, dash.no_update
+    elif button_id == "option-call":
+        user_question_message = dbc.Card(dbc.CardBody("Explicar la sonrisa de volatilidad"), style=user_message_style)
+        messages.append(user_question_message)
+        bot_answer_message = dbc.Card(dbc.CardBody("La sonrisa de volatilidad es una curva en forma de U que muestra que las opciones ITM y OTM tienen mayor volatilidad implícita que las ATM."), style=message_button_style)
+        messages.append(bot_answer_message)
+        more_info_prompt = dbc.Card(dbc.CardBody("¿Deseas saber más sobre este tema o algún otro aspecto de la volatilidad implícita?"), style=message_button_style)
+        messages.append(more_info_prompt)
+        return True, messages, {"display": "none"}, {"display": "flex"}, str(datetime.now().timestamp())
+
+    elif button_id == "option-put":
+        user_question_message = dbc.Card(dbc.CardBody("Importancia de la volatilidad implícita"), style=user_message_style)
+        messages.append(user_question_message)
+        bot_answer_message = dbc.Card(dbc.CardBody("La volatilidad implícita es crucial porque afecta el precio de las opciones y proporciona estimaciones sobre futuras fluctuaciones del mercado."), style=message_button_style)
+        messages.append(bot_answer_message)
+        more_info_prompt = dbc.Card(dbc.CardBody("¿Deseas profundizar más en cómo se calcula o cómo utilizarla para trading?"), style=message_button_style)
+        messages.append(more_info_prompt)
+        return True, messages, {"display": "none"}, {"display": "flex"}, str(datetime.now().timestamp())
+
+    elif button_id == "more-info-yes":
+        yes_response = dbc.Card(dbc.CardBody("Sí"), style=user_message_style)
+        messages.append(yes_response)
+        info_request_message = dbc.Card(dbc.CardBody("De acuerdo, sobre qué tema desea informarse?"), style=message_button_style)
+        messages.append(info_request_message)
+        return True, messages, {"display": "flex"}, {"display": "none"}, str(datetime.now().timestamp())
+
+    elif button_id == "more-info-no":
+        no_response = dbc.Card(dbc.CardBody("No"), style=user_message_style)
+        messages.append(no_response)
+        goodbye_message = dbc.Card(dbc.CardBody("Gracias por utilizar nuestro chat sobre volatilidad implícita. ¡Hasta pronto!"), style=message_button_style)
+        messages.append(goodbye_message)
+        return True, messages, {"display": "none"}, {"display": "none"}, str(datetime.now().timestamp())
+
 
 # Ejecución del servidor
 if __name__ == "__main__":
