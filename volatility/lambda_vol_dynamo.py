@@ -52,67 +52,6 @@ def implied_volatility(option_price, S, K, T, r, option_type):
     except ValueError:
         return np.nan  
 
-#def lambda_handler(event, context):
-#    bucket = 'miax-12-scrap-meff'
-#    opciones_key = 'datos_opciones.json'
-#    futuros_key = 'datos_futuros.json'
-#    
-#    # Obtener datos de opciones de S3
-#    response_opciones = s3_client.get_object(Bucket=bucket, Key=opciones_key)
-#    opciones_str = response_opciones['Body'].read().decode('utf-8')
-#    df_opciones = pd.read_json(opciones_str)
-#    
-#    # Obtener datos de futuros de S3
-#    response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
-#    futuros_str = response_futuros['Body'].read().decode('utf-8')
-#    df_futuros = pd.read_json(futuros_str)
-#    
-#    # Suponemos que los datos de futuros incluyen un precio actual "Ant"
-#    if not df_futuros.empty:
-#        price_sub = df_futuros.loc[0, 'Ant']
-#    else:
-#        price_sub = 0  # O manejar de otra forma si no hay datos disponibles
-#    
-#    rfr = 0.01  # Tasa de interés libre de riesgo, ajustar según sea necesario
-#    
-#    # Calcular la volatilidad implícita para cada opción en df_opciones
-#    df_opciones['Vol_call'] = df_opciones.apply(
-#        lambda row: implied_volatility(row['Precio_call'], price_sub, row['Strike'], row['T'], rfr, 'call'), axis=1)
-#    df_opciones['Vol_put'] = df_opciones.apply(
-#        lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
-#    
-#    # Preparar el DataFrame de volatilidades para la salida
-#    volatilidades = df_opciones[['Strike', 'Vol_call', 'Vol_put']]
-#    
-#    # Convertir el DataFrame de volatilidades a JSON para la salida
-#    result = volatilidades.to_dict('records')
-#    
-#    # Preparar los datos para almacenamiento en DynamoDB, o ajustar según necesidad
-#    # DynamoDB table
-#    dynamodb = boto3.resource('dynamodb')
-#    table = dynamodb.Table('VolatilidadesTable')
-#    
-#    now = datetime.now()
-#    timestamp = now.isoformat()
-#    
-#    # Subir los datos a DynamoDB
-#    for record in result:
-#        record_id = str(uuid.uuid4())  # Genera un UUID único para cada registro
-#        record['timestamp'] = timestamp  # Añade un timestamp al registro
-#        record['id'] = record_id  # Añade el UUID al registro
-#        
-#        # Escribe el registro en la tabla DynamoDB
-#        try:
-#            table.put_item(Item=record)
-#        except Exception as e:
-#            print(e)
-#            continue  # O maneja la excepción como mejor te parezca
-#
-#    return {
-#        'statusCode': 200,
-#        'body': json.dumps(result)
-#    }
-
 
 def subir_a_s3(data, bucket_name, object_name):
     """
@@ -140,7 +79,8 @@ def lambda_handler(event, context):
     opciones_str = response_opciones['Body'].read().decode('utf-8')
     opciones_io = StringIO(opciones_str)  # Utilizar StringIO aquí
     df_opciones = pd.read_json(opciones_io)
-
+    print(df_opciones)
+    
     # Leer datos de futuros (para obtener el precio subyacente)
     response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
     futuros_str = response_futuros['Body'].read().decode('utf-8')
@@ -157,18 +97,18 @@ def lambda_handler(event, context):
         lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
     # Preparar el DataFrame de volatilidades para la salida
-    volatilidades = df_opciones[['Strike', 'Vol_call', 'Vol_put']]
-
+    volatilidades = df_opciones[['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
+    print(volatilidades)
     vol_impli = volatilidades.to_json(orient='records')
 
     opciones_object_name = 'volatilidades_implicitas.json'
 
     # Subir a S3
-    subir_a_s3(vol_impli, bucket, opciones_object_name)
+    #subir_a_s3(vol_impli, bucket, opciones_object_name)
 
     return {
         'statusCode': 200,
-        'body': json.dumps('Volatilidades calculadas correctamente')
+        'body': json.dumps('Volatilidades subidas correctamente')
     }
 
 
