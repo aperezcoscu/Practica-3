@@ -79,7 +79,7 @@ def lambda_handler(event, context):
     opciones_str = response_opciones['Body'].read().decode('utf-8')
     opciones_io = StringIO(opciones_str)  # Utilizar StringIO aquí
     df_opciones = pd.read_json(opciones_io)
-    print(df_opciones)
+    #print(df_opciones)
     
     # Leer datos de futuros (para obtener el precio subyacente)
     response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
@@ -89,7 +89,7 @@ def lambda_handler(event, context):
 
     price_sub = df_futuros['Ant'].iloc[0] if not df_futuros.empty else 0
     rfr = 0.01  # Ejemplo de tasa de interés libre de riesgo
-
+    #print(price_sub)
     # Calcular la volatilidad implícita para cada opción en df_opciones
     df_opciones['Vol_call'] = df_opciones.apply(
         lambda row: implied_volatility(row['Precio_call'], price_sub, row['Strike'], row['T'], rfr, 'call'), axis=1)
@@ -98,13 +98,13 @@ def lambda_handler(event, context):
 
     # Preparar el DataFrame de volatilidades para la salida
     volatilidades = df_opciones[['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
-    print(volatilidades)
+    #print(volatilidades)
     vol_impli = volatilidades.to_json(orient='records')
 
     opciones_object_name = 'volatilidades_implicitas.json'
 
     # Subir a S3
-    #subir_a_s3(vol_impli, bucket, opciones_object_name)
+    subir_a_s3(vol_impli, bucket, opciones_object_name)
 
     return {
         'statusCode': 200,
