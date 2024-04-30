@@ -86,7 +86,7 @@ def subir_a_dynamodb(df):
                 'Vol_put': None if pd.isna(row['Vol_put']) else Decimal(str(row['Vol_put']))
             }
             table.put_item(Item=item)
-        print('Datos subidos correctamente a DynamoDB')
+        print('Datos almacenados correctamente a DynamoDB')
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
