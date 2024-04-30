@@ -186,7 +186,9 @@ app.layout = html.Div([
 ])
 
 
-# Callbacks de la aplicación
+# Mantén un estado global para el menú seleccionado
+selected_menu = "btn-call"
+
 @app.callback(
     [Output('btn-call', 'style'),
      Output('btn-put', 'style'),
@@ -198,10 +200,16 @@ app.layout = html.Div([
      State('btn-put', 'style')]
 )
 def update_content(call_clicks, put_clicks, selected_date, call_style, put_style):
+    global selected_menu
+    
     ctx = dash.callback_context
 
     # Identificar el botón que fue presionado
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else 'btn-call'
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+
+    # Si la actualización no fue provocada por un clic en el menú, mantener el menú seleccionado actual
+    if button_id is None:
+        button_id = selected_menu
 
     # Filtrar el dataframe por la fecha seleccionada
     filtered_df = df[df['Fecha'] == selected_date]
@@ -241,6 +249,9 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
         ),
         plot_bgcolor='white'  # Fondo blanco para el área del gráfico
     )
+    
+    # Actualiza el menú seleccionado
+    selected_menu = button_id
 
     return [call_style, put_style, fig]
 

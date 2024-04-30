@@ -1,0 +1,5 @@
+Cambiar nombre docker
+docker tag volatility_dynamo:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/vol_dynamo_ecr:latest
+
+Subir a aws
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/vol_dynamo_ecr:latest

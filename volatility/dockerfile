@@ -1,0 +1,12 @@
+# Usa una imagen base de Python.
+FROM public.ecr.aws/lambda/python:3.8
+
+# Copia el archivo de requisitos y el código de Lambda.
+COPY requirements.txt ./
+COPY lambda_vol_dynamo.py ./
+
+# Instala las dependencias de Python.
+RUN pip install -r requirements.txt
+
+# Establece el archivo de Lambda como el handler.
+CMD ["lambda_vol_dynamo.lambda_handler"]

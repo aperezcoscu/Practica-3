@@ -1,9 +1,16 @@
-
 import json
+import boto3
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from scipy.optimize import brentq
+from datetime import datetime
+from uuid import uuid4
+
+# AWS SDK (boto3) inicialización
+dynamodb = boto3.resource('dynamodb')
+# Asegúrate de que el nombre de la tabla es correcto
+table = dynamodb.Table('volatility_table')
 
 
 ### Calculamos volatilidades
@@ -48,8 +55,9 @@ def implied_volatility(option_price, S, K, T, r, option_type):
     except ValueError:
         return np.nan  
 
+
 def lambda_handler(event, context):
-    # Extrae los datos del evento
+    # Asumiendo que 'event' es un diccionario que ya contiene el payload esperado
     body = json.loads(event['responsePayload']['body'])
     
     # Convierte los datos a DataFrames de pandas
@@ -71,6 +79,23 @@ def lambda_handler(event, context):
     
     # Convierte el DataFrame de volatilidades a un diccionario para la salida JSON
     result = volatilidades.to_dict('records')
+
+    # Obtiene la fecha y hora actual para el timestamp
+    now = datetime.now()
+    timestamp = now.isoformat()
+
+    # Preparar los datos para importar a DynamoDB
+    for record in result:
+        record_id = str(uuid4())  # Genera un UUID único para cada registro
+        record['timestamp'] = timestamp  # Añade un timestamp al registro
+        record['id'] = record_id  # Añade el UUID al registro
+
+        # Escribe el registro en la tabla DynamoDB
+        try:
+            table.put_item(Item=record)
+        except Exception as e:
+            print(e)
+            continue  # O maneja la excepción como mejor te parezca
 
     return {
         'statusCode': 200,
