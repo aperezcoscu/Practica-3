@@ -192,7 +192,7 @@ def subir_a_s3(data, bucket_name, object_name):
     """
     try:
         s3_client.put_object(Body=data, Bucket=bucket_name, Key=object_name)
-        print(f'Datos subidos correctamente {bucket_name}/{object_name}')
+        print(f'Datos almacenados correctamente en {bucket_name}/{object_name}')
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
@@ -204,7 +204,7 @@ def lambda_handler(event, context):
     if response.status_code == 200:
         # Opciones
         df_opciones = datos_opciones('opciones', response)
-        #print(df_opciones)
+        #print('longitud', df_opciones.shape)
         # Futuros
         df_futuros = datos_futuros('futuros', response)
         
