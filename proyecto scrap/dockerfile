@@ -1,12 +1,12 @@
 # Usar una imagen base oficial de Python para AWS Lambda
-FROM public.ecr.aws/lambda/python:3.8
+FROM public.ecr.aws/lambda/python:3.12
 
 # Copiar el archivo del script Python y cualquier otro archivo necesario al contenedor
-COPY lambda_scrap.py ./
-COPY requirements.txt .
+COPY scrapping_s3_meff.py ./
+COPY requirements_2.txt .
 
 # Instalar las dependencias Python
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements_2.txt
 
 # Establecer el comando para ejecutar tu aplicación
-CMD ["lambda_scrap.lambda_handler"]
+CMD ["scrapping_s3_meff.lambda_handler"]
