@@ -76,21 +76,20 @@ def tratar_dataframe(df, tipo_tabla):
     """
     if tipo_tabla == 'opciones':
         # Especificar los nombres de columna para opciones
-        df.columns = ['Class', 'Strike', 'Buy_ord', 'Buy_vol', 'Buy_price', 'Sell_price', 'Sell_vol', 'Sell_ord', 'Ult', 'Vol', 'Aper', 'Max.', 'Min.','Ant']
+        df.columns = ['Class', 'Strike', 'Buy_ord', 'Buy_vol', 'Buy_price', 'Sell_price', 'Sell_vol', 'Sell_ord', 'Ult', 'Vol', 'Aper', 'Max.', 'Min.', 'Ant']
         df['Tipo'] = df['Class'].str[:3]
-        df['Fecha'] = pd.to_datetime(df['Class'].str[3:], format='%Y%m%d').dt.strftime('%d-%m-%Y')
-        df = df.drop(['Class'], axis=1)
+        df['Fecha'] = pd.to_datetime(df['Class'].str[3:], format='%Y%m%d').dt.strftime('%Y-%m-%d')
+        df.drop(['Class'], axis=1, inplace=True)
         
         # Transformaciones adicionales para opciones
-        df['Strike'] = df['Strike'].str.replace('.', '').str.replace(',', '.').astype(float)
-        df['Ant'] = pd.to_numeric(df['Ant'].str.replace('.', '').str.replace(',', '.'), errors='coerce')
-        df['Buy_price'] = pd.to_numeric(df['Buy_price'].str.replace('.', '').str.replace(',', '.'), errors='coerce')
-        df['Sell_price'] = pd.to_numeric(df['Sell_price'].str.replace('.', '').str.replace(',', '.'), errors='coerce')
+        df['Strike'] = df['Strike'].apply(lambda x: float(x.replace('.', '').replace(',', '.')))
+        df['Ant'] = df['Ant'].apply(lambda x: pd.to_numeric(x.replace('.', '').replace(',', '.'), errors='coerce'))
+        df['Buy_price'] = df['Buy_price'].apply(lambda x: pd.to_numeric(x.replace('.', '').replace(',', '.'), errors='coerce'))
+        df['Sell_price'] = df['Sell_price'].apply(lambda x: pd.to_numeric(x.replace('.', '').replace(',', '.'), errors='coerce'))
 
-        df['Fecha'] = pd.to_datetime(df['Fecha'], format='%d-%m-%Y')
-        
         # Seleccionando solo las columnas deseadas para opciones
-        df = df.loc[:, ['Tipo', 'Fecha', 'Strike', 'Buy_price', 'Sell_price', 'Ant']]
+        df = df[['Tipo', 'Fecha', 'Strike', 'Buy_price', 'Sell_price', 'Ant']]
+        
         
     elif tipo_tabla == 'futuros':
         # Especificar los nombres de columna para futuros
@@ -147,7 +146,6 @@ def calcular_precio_opcion(row, tipo):
 
     
 def datos_opciones(tipo_tabla, response):
-    
     df = obtener_dataframe(response, tipo_tabla)
     df = tratar_dataframe(df, tipo_tabla)
     
@@ -157,21 +155,16 @@ def datos_opciones(tipo_tabla, response):
     df_c.rename(columns={'Buy_price': 'Buy_price_call', 'Sell_price': 'Sell_price_call', 'Ant': 'Ant_call'}, inplace=True)
     df_p.rename(columns={'Buy_price': 'Buy_price_put', 'Sell_price': 'Sell_price_put', 'Ant': 'Ant_put'}, inplace=True)
     
-    # Unir los dataframes por 'Strike' y 'Fecha'
+    # Unir los dataframes por 'Fecha' y 'Strike'
     df_final = pd.merge(df_c, df_p, on=['Fecha', 'Strike'], how='outer')
 
     # Ordenar por 'Fecha' y 'Strike'
     df_final.sort_values(by=['Fecha', 'Strike'], ascending=[True, True], inplace=True)
-        
-    # Establecer 'Fecha' como índice
-    df_final.set_index('Fecha', inplace=True)
-
+    
     # Calcular la columna 'T' en el DataFrame
-    df_final['T'] = (df_final.index - pd.Timestamp(datetime.now().date())).days / 365.25
+    df_final['T'] = (pd.to_datetime(df_final['Fecha']) - pd.Timestamp(datetime.now().date())).dt.days / 365.25
 
-    df_final = df_final[['Strike', 'Buy_price_call', 'Sell_price_call', 'Ant_call', 'Buy_price_put', 'Sell_price_put', 'Ant_put', 'T']]
-
-    # Aplicar la función para crear las columnas 'Precio_call' y 'Precio_put'
+    # Aplicar la función para calcular las columnas 'Precio_call' y 'Precio_put'
     df_final['Precio_call'] = df_final.apply(lambda row: calcular_precio_opcion(row, 'call'), axis=1)
     df_final['Precio_put'] = df_final.apply(lambda row: calcular_precio_opcion(row, 'put'), axis=1)
 
@@ -184,28 +177,6 @@ def datos_futuros(tipo_tabla, response):
     df = tratar_dataframe(df, 'futuros')
     return df
 
-
-# Credenciales
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Action": [
-                "s3:PutObject",
-                "s3:PutObjectAcl",
-                "s3:GetObject",
-                "s3:GetObjectAcl",
-                "s3:DeleteObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::miax-12-scrap-meff",
-                "arn:aws:s3:::miax-12-scrap-meff/*"
-            ],
-            "Effect": "Allow",
-            "Principal": "*"
-        }
-    ]
-}
 
 # Cliente de S3
 s3_client = boto3.client('s3')
@@ -233,12 +204,14 @@ def lambda_handler(event, context):
     if response.status_code == 200:
         # Opciones
         df_opciones = datos_opciones('opciones', response)
+        #print(df_opciones)
         # Futuros
         df_futuros = datos_futuros('futuros', response)
         
         # Convertir DataFrames a JSON
         opciones_json = df_opciones.to_json(orient='records')
         futuros_json = df_futuros.to_json(orient='records')
+        #print(opciones_json)
         
         # Nombre del bucket y los objetos en S3
         bucket_name = 'miax-12-scrap-meff'
