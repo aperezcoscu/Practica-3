@@ -6,6 +6,8 @@ from scipy.optimize import brentq
 from datetime import datetime
 import numpy as np
 from io import StringIO
+from decimal import Decimal
+
 
 # Inicializar el cliente de S3
 s3_client = boto3.client('s3')
@@ -68,6 +70,30 @@ def subir_a_s3(data, bucket_name, object_name):
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
+def subir_a_dynamodb(df):
+    """
+    Sube los datos al DynamoDB especificado.
+    Args:
+    - df (DataFrame): DataFrame de Pandas que contiene los datos a subir.
+    """
+    try:
+        for index, row in df.iterrows():
+            item = {
+                'id': row['Fecha'] + '_' + str(row['Strike']),  # Asegúrate de que este campo es único
+                'Fecha': row['Fecha'],
+                'Strike': int(row['Strike']),
+                'Vol_call': None if pd.isna(row['Vol_call']) else Decimal(str(row['Vol_call'])),
+                'Vol_put': None if pd.isna(row['Vol_put']) else Decimal(str(row['Vol_put']))
+            }
+            table.put_item(Item=item)
+        print('Datos subidos correctamente a DynamoDB')
+    except Exception as e:
+        print(f'Se ha producido un error: {e}')
+
+
+# Inicializar el cliente de DynamoDB
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('Volatilidades')  # Nombre de tu tabla de DynamoDB
 
 def lambda_handler(event, context):
     bucket = 'miax-12-scrap-meff'
@@ -75,45 +101,34 @@ def lambda_handler(event, context):
     futuros_key = 'datos_futuros.json'
 
     # Leer datos de opciones
+    s3_client = boto3.client('s3')
     response_opciones = s3_client.get_object(Bucket=bucket, Key=opciones_key)
     opciones_str = response_opciones['Body'].read().decode('utf-8')
-    opciones_io = StringIO(opciones_str)  # Utilizar StringIO aquí
+    opciones_io = StringIO(opciones_str)
     df_opciones = pd.read_json(opciones_io)
-    #print(df_opciones)
-    
+
     # Leer datos de futuros (para obtener el precio subyacente)
     response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
     futuros_str = response_futuros['Body'].read().decode('utf-8')
-    futuros_io = StringIO(futuros_str)  # Utilizar StringIO aquí
+    futuros_io = StringIO(futuros_str)
     df_futuros = pd.read_json(futuros_io)
 
     price_sub = df_futuros['Ant'].iloc[0] if not df_futuros.empty else 0
-    rfr = 0.01  # Ejemplo de tasa de interés libre de riesgo
-    #print(price_sub)
+    rfr = 0.01  # Tasa de interés libre de riesgo
+
     # Calcular la volatilidad implícita para cada opción en df_opciones
     df_opciones['Vol_call'] = df_opciones.apply(
         lambda row: implied_volatility(row['Precio_call'], price_sub, row['Strike'], row['T'], rfr, 'call'), axis=1)
     df_opciones['Vol_put'] = df_opciones.apply(
         lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
-    # Preparar el DataFrame de volatilidades para la salida
-    volatilidades = df_opciones[['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
-    #print(volatilidades)
-    vol_impli = volatilidades.to_json(orient='records')
-
-    opciones_object_name = 'volatilidades_implicitas.json'
-
-    # Subir a S3
-    subir_a_s3(vol_impli, bucket, opciones_object_name)
+    # Subir a DynamoDB
+    subir_a_dynamodb(df_opciones[['Fecha', 'Strike', 'Vol_call', 'Vol_put']])
 
     return {
         'statusCode': 200,
-        'body': json.dumps('Volatilidades subidas correctamente')
+        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB')
     }
 
-
-
 if __name__ == "__main__":
-    # Suponiendo que no necesitas pasar un evento o contexto específico,
-    # puedes llamar a lambda_handler con valores ficticios o nulos.
     print(lambda_handler({}, {}))
