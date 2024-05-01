@@ -7,8 +7,6 @@ on:
 
 env:
   AWS_REGION: eu-west-3
-  ECR_REPOSITORY: volatility_ecr
-  LAMBDA_NAME: volatility_ddb
 
 defaults:
   run:
@@ -37,25 +35,36 @@ jobs:
         id: login_ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build_image
+      - name: Build and push image for volatility_ddb
+        id: build_image_volatility
         env:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY: volatility_ecr
+          DOCKERFILE_PATH: volatility/dockerfile
         run: |
-          # Cambia al directorio donde se encuentra el Dockerfile y otros archivos necesarios
           cd volatility
-          # Construye la imagen Docker
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
-          # Sube la imagen a ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          # Guarda el nombre completo de la imagen como una salida para uso en pasos posteriores
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Deploy function
-        env:
-          ECR_REGISTRY: ${{ steps.build_image.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Update Lambda function volatility_ddb
         run: |
-          # Actualiza la función lambda con la nueva imagen de ECR
-          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name ${{ env.LAMBDA_NAME }} --image-uri ${{ steps.build_image.outputs.image }}
+          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name volatility_ddb --image-uri ${{ steps.build_image_volatility.outputs.image }}
+
+      - name: Build and push image for scrapp_meff_s3
+        id: build_image_scrapping
+        env:
+          ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY: scrapping_meff_s3_ecr
+          DOCKERFILE_PATH: scrap/dockerfile
+        run: |
+          cd proyecto scrap
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Update Lambda function scrapp_meff_s3
+        run: |
+          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name scrapp_meff_s3 --image-uri ${{ steps.build_image_scrapping.outputs.image }}

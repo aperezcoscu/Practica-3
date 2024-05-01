@@ -86,7 +86,7 @@ def subir_a_dynamodb(df):
                 'Vol_put': None if pd.isna(row['Vol_put']) else Decimal(str(row['Vol_put']))
             }
             table.put_item(Item=item)
-        print('Datos almacenados correctamente y Lambda actualizada')
+        print('Datos almacenados correctamente y funciones actualizadas')
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
@@ -129,7 +129,7 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y Lambda actualizada')
+        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y funciones actualizadas')
     }
 
 

@@ -217,7 +217,7 @@ def lambda_handler(event, context):
         subir_a_s3(futuros_json, bucket_name, futuros_object_name)
         return {
             'statusCode': 200,
-            'body': json.dumps('Se ha subido correctamente')
+            'body': json.dumps('Funciones actualizadas')
         }
     else:
         return {
