@@ -87,7 +87,6 @@ def tratar_dataframe(df, tipo_tabla):
         # Seleccionando solo las columnas deseadas para opciones
         df = df[['Tipo', 'Fecha', 'Strike', 'Buy_price', 'Sell_price', 'Ant']]
         
-        
     elif tipo_tabla == 'futuros':
         # Especificar los nombres de columna para futuros
         df.columns = ['Vencimiento', 'Tipo', 'Buy_ord', 'Buy_vol', 'Buy_price', 'Sell_price', 'Sell_vol', 'Sell_ord', 'Ult', 'Vol', 'Aper', 'Max.', 'Min.','Ant']

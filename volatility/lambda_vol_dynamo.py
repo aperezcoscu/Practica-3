@@ -132,5 +132,7 @@ def lambda_handler(event, context):
         'body': json.dumps('Volatilidades subidas correctamente a DynamoDB')
     }
 
+
+
 if __name__ == "__main__":
     print(lambda_handler({}, {}))
