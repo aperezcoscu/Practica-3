@@ -16,12 +16,10 @@ response = requests.get(url)
 def obtener_dataframe(response, tipo_tabla):
     """
     Realiza el web scraping y devuelve un dataframe con los datos obtenidos,
-    dependiendo si el tipo de tabla es 'opciones' o 'futuros'.
-    
+    dependiendo si el tipo de tabla es 'opciones' o 'futuros'.    
     Args:
     - response: La respuesta HTTP obtenida.
     - tipo_tabla: Tipo de la tabla a buscar ('opciones' o 'futuros').
-    
     Returns:
     - Un dataframe con los datos de la tabla.
     """
@@ -229,6 +227,7 @@ def lambda_handler(event, context):
             'statusCode': response.status_code,
             'body': json.dumps('Error al realizar el web scraping')
         }
+
 
 if __name__ == "__main__":
     # Suponiendo que no necesitas pasar un evento o contexto específico,
