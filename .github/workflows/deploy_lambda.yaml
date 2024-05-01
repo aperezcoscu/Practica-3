@@ -41,7 +41,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
           ECR_REPOSITORY: volatility_ecr
-          DOCKERFILE_PATH: volatility/dockerfile
+          DOCKERFILE_PATH: volatility/Dockerfile
         run: |
           cd volatility
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
@@ -60,7 +60,7 @@ jobs:
           ECR_REPOSITORY: scrapping_meff_s3_ecr
           DOCKERFILE_PATH: scrap/dockerfile
         run: |
-          cd proyecto scrap
+          cd scrap
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"

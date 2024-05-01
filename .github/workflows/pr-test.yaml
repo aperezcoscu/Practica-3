@@ -1,6 +1,7 @@
 name: Run Python Tests and flake 8
 
-#on:
+on:
+  workflow_dispatch:
 #  push:
 #    branches:
 #      - main
