@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3  # Asegúrate de que esta versión sea la que soporte Node.js 20
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3  # Asegúrate de que esta versión sea la que soporte Node.js 20
       with:
-        python-version: '3.8'  # Asegúrate de usar la versión de Python que necesites
+        python-version: '3.11'  # Asegúrate de usar la versión de Python que necesites
 
     - name: Install dependencies
       run: |

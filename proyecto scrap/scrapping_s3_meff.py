@@ -167,7 +167,6 @@ def datos_opciones(tipo_tabla, response):
     return df_final
 
 
-
 def datos_futuros(tipo_tabla, response):
     df = obtener_dataframe(response, 'futuros')
     df = tratar_dataframe(df, 'futuros')
