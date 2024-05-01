@@ -129,7 +129,7 @@ def lambda_handler(event, context):
 
     return {
         'statusCode': 200,
-        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y deploy correcto')
+        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y deployment realizado')
     }
 
 

@@ -1,4 +1,4 @@
-name: Deploy to Amazon
+name: Actualización Lambdas 
 
 on:
   push:
