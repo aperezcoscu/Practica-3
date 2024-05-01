@@ -9,7 +9,6 @@ env:
   AWS_REGION: eu-west-3
   ECR_REPOSITORY: volatility_ecr
   LAMBDA_NAME: volatility_ddb
-  DOCKERFILE_PATH: volatility/dockerfile
 
 defaults:
   run:
@@ -44,13 +43,19 @@ jobs:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $DOCKERFILE_PATH .
+          # Cambia al directorio donde se encuentra el Dockerfile y otros archivos necesarios
+          cd volatility
+          # Construye la imagen Docker
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          # Sube la imagen a ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Guarda el nombre completo de la imagen como una salida para uso en pasos posteriores
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Deploy function
         env:
-          ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
+          ECR_REGISTRY: ${{ steps.build_image.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          aws lambda update-function-code --region $AWS_REGION --function-name $LAMBDA_NAME --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Actualiza la función lambda con la nueva imagen de ECR
+          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name ${{ env.LAMBDA_NAME }} --image-uri ${{ steps.build_image.outputs.image }}
