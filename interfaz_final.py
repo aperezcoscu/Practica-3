@@ -138,6 +138,9 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 df = pd.read_csv('volatilidades.csv')
 unique_dates = df['Fecha'].unique()
 
+
+# Calculamos las superficies de volatilidad
+
 # Asumiendo que 'messages' es una variable global o de sesión que almacena los mensajes
 messages = []
 
@@ -151,6 +154,7 @@ app.layout = html.Div([
         html.Button('Opciones Put', id='btn-put', n_clicks=0, style=button_style),
         html.Hr(),
         html.P('Superficie de volatilidad', style={'font-weight': 'bold'}),
+        html.Button('Visualizar superficie', id='btn-visualize-surface', n_clicks=0, style=button_style),  # Nuevo botón aquí
     ], style=sidebar_style),
     html.Div([
         html.Div([
@@ -192,68 +196,71 @@ selected_menu = "btn-call"
 @app.callback(
     [Output('btn-call', 'style'),
      Output('btn-put', 'style'),
+     Output('btn-visualize-surface', 'style'),
      Output('volatility-graph', 'figure')],
     [Input('btn-call', 'n_clicks'),
      Input('btn-put', 'n_clicks'),
+     Input('btn-visualize-surface', 'n_clicks'),
      Input('date-picker', 'value')],
     [State('btn-call', 'style'),
-     State('btn-put', 'style')]
+     State('btn-put', 'style'),
+     State('btn-visualize-surface', 'style')]
 )
-def update_content(call_clicks, put_clicks, selected_date, call_style, put_style):
+
+def update_content(call_clicks, put_clicks, visualize_clicks, selected_date, call_style, put_style, visualize_style):
     global selected_menu
-    
+
     ctx = dash.callback_context
-
-    # Identificar el botón que fue presionado
-    button_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
-
-    # Si la actualización no fue provocada por un clic en el menú, mantener el menú seleccionado actual
-    if button_id is None:
-        button_id = selected_menu
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
     # Filtrar el dataframe por la fecha seleccionada
     filtered_df = df[df['Fecha'] == selected_date]
+    fig = None
 
-    if button_id == 'btn-call':
+    if triggered_id == 'btn-call':
         fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                       markers=True)
-        # Establecer estilo activo para Call y inactivo para Put
         call_style = active_button_style
         put_style = button_style
-    else:
+        visualize_style = button_style
+        selected_menu = triggered_id
+        
+    elif triggered_id == 'btn-put':
         fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                       markers=True)
-        # Establecer estilo activo para Put y inactivo para Call
         call_style = button_style
         put_style = active_button_style
+        visualize_style = button_style
+        selected_menu = triggered_id
+        
+    elif triggered_id == 'btn-visualize-surface':
+        fig = px.surface(filtered_df, x='Strike', y='Expiry', z='Vol_surface', title='Superficie de Volatilidad')
+        call_style = button_style
+        put_style = button_style
+        visualize_style = active_button_style
+        selected_menu = triggered_id
+        
+    else:
+        # Si se cambia la fecha sin clic en un botón, mantener el gráfico y estilo actual
+        if selected_menu == 'btn-call':
+            fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
+                          markers=True)
+            call_style = active_button_style
+            put_style = button_style
+            visualize_style = button_style
+        elif selected_menu == 'btn-put':
+            fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
+                          markers=True)
+            call_style = button_style
+            put_style = active_button_style
+            visualize_style = button_style
+        elif selected_menu == 'btn-visualize-surface':
+            fig = px.surface(filtered_df, x='Strike', y='Expiry', z='Vol_surface', title='Superficie de Volatilidad')
+            call_style = button_style
+            put_style = button_style
+            visualize_style = active_button_style
 
-    # Actualizar el estilo del gráfico para que tenga líneas en los ejes X e Y
-    fig.update_layout(
-        xaxis=dict(
-            showline=True,  # Mostrar la línea del eje x
-            linecolor='black',  # Color de la línea del eje x
-            linewidth=1,  # Grosor de la línea del eje x
-            showgrid=True,  # Mostrar las líneas de la cuadrícula en el eje x
-            showticklabels=True,
-            ticks='outside',
-            gridcolor='lightgrey'  # Color de las líneas de la cuadrícula del eje x
-        ),
-        yaxis=dict(
-            showline=True,  # Mostrar la línea del eje y
-            linecolor='black',  # Color de la línea del eje y
-            linewidth=1,  # Grosor de la línea del eje y
-            showgrid=True,  # Mostrar las líneas de la cuadrícula en el eje y
-            showticklabels=True,
-            ticks='outside',
-            gridcolor='lightgrey'  # Color de las líneas de la cuadrícula del eje y
-        ),
-        plot_bgcolor='white'  # Fondo blanco para el área del gráfico
-    )
-    
-    # Actualiza el menú seleccionado
-    selected_menu = button_id
-
-    return [call_style, put_style, fig]
+    return [call_style, put_style, visualize_style, fig]
 
 
 # Chatbot

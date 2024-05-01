@@ -2,17 +2,21 @@ Conexión AWS:
 aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 975050217121.dkr.ecr.eu-west-3.amazonaws.com
 
 Imagen docker: 
-docker build -t nombre-de-tu-imagen .
-docker tag scrapp_s3:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/scrapp_meff_s3_ecr:latest
+docker build -t volatility .
+docker tag volatility:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr/:latest
 "scrapp_s3" es el archivo de python, scrapp_s3_ecr el repositorio
 
 Creamos ECR en aws:
-aws ecr create-repository --repository-name scrapping_meff_s3_ecr --region eu-west-3
+aws ecr create-repository --repository-name volatility_ecr --region eu-west-3
 
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/scrapping_meff_s3_ecr:latest
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest
 
 
 
 Para actualizar la imagen en docker y subirla a ECR
-docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/scrapping_meff_s3_ecr:latest .
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/scrapping_meff_s3_ecr:latest
+docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest .
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest
+
+
+
+scrapping_meff_s3
