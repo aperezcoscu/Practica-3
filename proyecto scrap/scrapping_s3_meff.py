@@ -204,14 +204,12 @@ def lambda_handler(event, context):
     if response.status_code == 200:
         # Opciones
         df_opciones = datos_opciones('opciones', response)
-        #print('longitud', df_opciones.shape)
         # Futuros
         df_futuros = datos_futuros('futuros', response)
         
         # Convertir DataFrames a JSON
         opciones_json = df_opciones.to_json(orient='records')
         futuros_json = df_futuros.to_json(orient='records')
-        #print(opciones_json)
         
         # Nombre del bucket y los objetos en S3
         bucket_name = 'miax-12-scrap-meff'
@@ -235,3 +233,4 @@ if __name__ == "__main__":
     # Suponiendo que no necesitas pasar un evento o contexto específico,
     # puedes llamar a lambda_handler con valores ficticios o nulos.
     print(lambda_handler({}, {}))
+    

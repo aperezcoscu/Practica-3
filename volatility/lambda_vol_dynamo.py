@@ -123,7 +123,7 @@ def lambda_handler(event, context):
         lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
     df_volatilidades = df_opciones.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
-    #print(df_volatilidades)
+
     # Subir a DynamoDB
     subir_a_dynamodb(df_volatilidades)
 
