@@ -204,6 +204,7 @@ def lambda_handler(event, context):
     if response.status_code == 200:
         # Opciones
         df_opciones = datos_opciones('opciones', response)
+        
         # Futuros
         df_futuros = datos_futuros('futuros', response)
         
