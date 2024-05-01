@@ -226,6 +226,7 @@ def lambda_handler(event, context):
         }
 
 
+
 if __name__ == "__main__":
     # Suponiendo que no necesitas pasar un evento o contexto específico,
     # puedes llamar a lambda_handler con valores ficticios o nulos.
