@@ -12,7 +12,6 @@ url = 'https://www.meff.es/esp/Derivados-Financieros/Ficha/FIEM_MiniIbex_35'
 # Realizar la petición HTTP GET a la página
 response = requests.get(url)
 
-
 def obtener_dataframe(response, tipo_tabla):
     """
     Realiza el web scraping y devuelve un dataframe con los datos obtenidos,
