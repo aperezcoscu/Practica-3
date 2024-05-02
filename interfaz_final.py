@@ -7,6 +7,7 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 from datetime import datetime
 from dash.exceptions import PreventUpdate
+import numpy as np
 
 
 ### Estilos 
@@ -131,15 +132,141 @@ options_container_style = {
 }
 
 
+# Funciones Volatilidad
+
+def calcular_tiempo_a_madurez(df):
+    """
+    Calcula el tiempo hasta la madurez desde la fecha actual hasta las fechas en la columna 'Fecha' del DataFrame dado.
+    La función retorna una columna con los tiempos calculados.
+
+    Args:
+        df (pd.DataFrame): DataFrame que contiene una columna 'Fecha' con las fechas de expiración.
+
+    Returns:
+        pd.Series: Serie con los tiempos hasta la madurez en años.
+    """
+    df_temp = df.copy()  # Trabajar con una copia para evitar efectos secundarios en el DataFrame original
+    df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'])
+    fecha_base = pd.Timestamp(datetime.now().date())
+    return (df_temp['Fecha'] - fecha_base).dt.days / 365.25
+
+def preparar_datos(df, precio_subyacente, tipo_opcion):
+    """
+    Prepara los datos para la interpolación necesaria para crear una superficie de volatilidad.
+
+    Args:
+        df (pd.DataFrame): DataFrame con las columnas 'Fecha', 'Strike', 'Vol_call', y 'Vol_put'.
+        precio_subyacente (float): Precio actual del activo subyacente para calcular el Moneyness.
+        tipo_opcion (str): Tipo de opción, 'call' o 'put'.
+
+    Returns:
+        tuple: Contiene tres arrays numpy que representan la malla de Tiempo a Madurez (T),
+               Moneyness (M) y los valores interpolados de Volatilidad Implícita (IV).
+    """
+    # Calcula la madurez y asigna a la columna 'Maturity'
+    df['Maturity'] = calcular_tiempo_a_madurez(df)
+    
+    # Calcula el Moneyness
+    df['Moneyness'] = df['Strike'] / precio_subyacente
+    
+    # Selecciona la volatilidad según el tipo de opción y asegura no trabajar en copias
+    if tipo_opcion == 'call':
+        df = df.dropna(subset=['Vol_call']).copy()
+        df.loc[:, 'VolatilidadImplicita'] = df['Vol_call']
+    elif tipo_opcion == 'put':
+        df = df.dropna(subset=['Vol_put']).copy()
+        df.loc[:, 'VolatilidadImplicita'] = df['Vol_put']
+    
+    # Agrupa por 'Maturity' y 'Moneyness' y calcula la media de la volatilidad implícita
+    df_agrupado = df.groupby(['Maturity', 'Moneyness'], as_index=False)['VolatilidadImplicita'].mean()
+
+    # Prepara los datos para la interpolación
+    Maturity = np.linspace(df_agrupado['Maturity'].min(), df_agrupado['Maturity'].max(), 100)
+    Moneyness = np.linspace(df_agrupado['Moneyness'].min(), df_agrupado['Moneyness'].max(), 100)
+    T_grid, M_grid = np.meshgrid(Maturity, Moneyness)
+
+    # Interpolación para crear la superficie de volatilidad
+    IV_grid = griddata(
+        (df_agrupado['Maturity'].values, df_agrupado['Moneyness'].values),
+        df_agrupado['VolatilidadImplicita'].values,
+        (T_grid, M_grid),
+        method='cubic'
+    )
+
+    return T_grid, M_grid, IV_grid
+
+def plot_surface(X, Y, Z, title='Superficie de Volatilidad'):
+    """
+    Crea y muestra un gráfico de superficie usando Plotly.
+
+    Args:
+    X (array-like): Coordenadas X de la malla de la superficie, 
+    representando el tiempo de madurez.
+    Y (array-like): Coordenadas Y de la malla de la superficie, 
+    representando la moneidad.
+    Z (array-like): Valores de la superficie (elevación) para 
+    cada par (X, Y), representando la volatilidad implícita.
+    title (str): Título del gráfico.
+
+    Returns:
+    None - Muestra un gráfico interactivo.
+    """
+    # Crear el objeto figura y añadir la superficie
+    fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='RdBu', cmin=Z.min(), cmax=Z.max())])
+    
+    # Personalizar la apariencia del gráfico
+    fig.update_layout(
+        title=title,
+        autosize=False,
+        width=600,
+        height=600,
+        scene=dict(
+            xaxis=dict(title='Maturity Time', 
+                       backgroundcolor="rgb(200, 200, 230)", 
+                       gridcolor="white", 
+                       showbackground=True, 
+                       zerolinecolor="white", 
+                       tickfont=dict(size=12)),
+            
+            yaxis=dict(title='Moneyness', 
+                       backgroundcolor="rgb(230, 200,230)", 
+                       gridcolor="white", 
+                       showbackground=True, 
+                       zerolinecolor="white", 
+                       tickfont=dict(size=12)),
+            
+            zaxis=dict(title='Volatilidad Implícita', 
+                       backgroundcolor="rgb(230, 230,200)", 
+                       gridcolor="white", 
+                       showbackground=True, 
+                       zerolinecolor="white", 
+                       tickfont=dict(size=12)),
+            camera_eye=dict(x=1.5, y=1.5, z=0.5)
+        ),
+        margin=dict(l=65, r=50, b=65, t=90),
+        
+        paper_bgcolor='rgb(243, 243, 243)',
+        
+        font=dict(family="Arial, sans-serif", 
+                  size=12, 
+                  color="darkblue")
+    )
+
+    # Ajustes de iluminación para mejorar el aspecto tridimensional
+    fig.update_traces(lighting=dict(ambient=0.3, diffuse=0.7, fresnel=0.1, specular=0.5, roughness=0.5))
+    
+    fig.show()
+
+
+
+
 # Establecer estilos de la aplicación y componentes externos
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
 # Leer el archivo CSV
 df = pd.read_csv('volatilidades.csv')
 unique_dates = df['Fecha'].unique()
-
-
-# Calculamos las superficies de volatilidad
+precio_subyacente = 11123.70  # Este valor debe ser el precio actual del subyacente
 
 # Asumiendo que 'messages' es una variable global o de sesión que almacena los mensajes
 messages = []
@@ -196,20 +323,16 @@ selected_menu = "btn-call"
 @app.callback(
     [Output('btn-call', 'style'),
      Output('btn-put', 'style'),
-     Output('btn-visualize-surface', 'style'),
      Output('volatility-graph', 'figure')],
     [Input('btn-call', 'n_clicks'),
      Input('btn-put', 'n_clicks'),
-     Input('btn-visualize-surface', 'n_clicks'),
      Input('date-picker', 'value')],
     [State('btn-call', 'style'),
-     State('btn-put', 'style'),
-     State('btn-visualize-surface', 'style')]
+     State('btn-put', 'style')]
 )
-
-def update_content(call_clicks, put_clicks, visualize_clicks, selected_date, call_style, put_style, visualize_style):
+def update_content(call_clicks, put_clicks, selected_date, call_style, put_style):
     global selected_menu
-
+    
     ctx = dash.callback_context
     triggered_id = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
 
@@ -217,50 +340,58 @@ def update_content(call_clicks, put_clicks, visualize_clicks, selected_date, cal
     filtered_df = df[df['Fecha'] == selected_date]
     fig = None
 
-    if triggered_id == 'btn-call':
-        fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
-                      markers=True)
-        call_style = active_button_style
-        put_style = button_style
-        visualize_style = button_style
-        selected_menu = triggered_id
-        
-    elif triggered_id == 'btn-put':
-        fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
-                      markers=True)
-        call_style = button_style
-        put_style = active_button_style
-        visualize_style = button_style
-        selected_menu = triggered_id
-        
-    elif triggered_id == 'btn-visualize-surface':
-        fig = px.surface(filtered_df, x='Strike', y='Expiry', z='Vol_surface', title='Superficie de Volatilidad')
-        call_style = button_style
-        put_style = button_style
-        visualize_style = active_button_style
-        selected_menu = triggered_id
-        
+    if triggered_id in ['btn-call', 'btn-put']:
+        # Ajustar la lógica de selección basada en qué botón fue presionado
+        if triggered_id == 'btn-call':
+            fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
+                          markers=True)
+            call_style = active_button_style
+            put_style = button_style
+            selected_menu = triggered_id
+        elif triggered_id == 'btn-put':
+            fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
+                          markers=True)
+            call_style = button_style
+            put_style = active_button_style
+            selected_menu = triggered_id
     else:
-        # Si se cambia la fecha sin clic en un botón, mantener el gráfico y estilo actual
+        # Usar el estado actual del menú para determinar el gráfico y estilos
         if selected_menu == 'btn-call':
             fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                           markers=True)
             call_style = active_button_style
             put_style = button_style
-            visualize_style = button_style
         elif selected_menu == 'btn-put':
             fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                           markers=True)
             call_style = button_style
             put_style = active_button_style
-            visualize_style = button_style
-        elif selected_menu == 'btn-visualize-surface':
-            fig = px.surface(filtered_df, x='Strike', y='Expiry', z='Vol_surface', title='Superficie de Volatilidad')
-            call_style = button_style
-            put_style = button_style
-            visualize_style = active_button_style
 
-    return [call_style, put_style, visualize_style, fig]
+    # Configuración común del gráfico
+    if fig:
+        fig.update_layout(
+            xaxis=dict(
+                showline=True,
+                linecolor='black',
+                linewidth=1,
+                showgrid=True,
+                showticklabels=True,
+                ticks='outside',
+                gridcolor='lightgrey'
+            ),
+            yaxis=dict(
+                showline=True,
+                linecolor='black',
+                linewidth=1,
+                showgrid=True,
+                showticklabels=True,
+                ticks='outside',
+                gridcolor='lightgrey'
+            ),
+            plot_bgcolor='white'
+        )
+
+    return [call_style, put_style, fig]
 
 
 # Chatbot

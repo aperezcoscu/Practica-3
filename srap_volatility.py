@@ -251,7 +251,7 @@ df_opciones['Vol_put'] = df_opciones.apply(lambda row: implied_volatility(row['P
 
 volatilidades = df_opciones.loc[:, ['Strike', 'Vol_call', 'Vol_put']]
 
-print(volatilidades)
+print(df_opciones)
 
 try:
     # Asumiendo que df_opciones ya está correctamente procesado y configurado
