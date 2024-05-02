@@ -492,6 +492,7 @@ def update_surface_graph(option_type):
     return crear_grafico(df, precio_subyacente, option_type)  # Usar df_final como ejemplo
 
 
+
 ### Chatbot
 @app.callback(
     [Output("chatbot-container", "is_open"),
