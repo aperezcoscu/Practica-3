@@ -1,17 +1,25 @@
-## Interfaz moderna
-
+# Librerias interfaz
 import dash
 from dash import html, dcc, Input, Output, State, callback
-import pandas as pd
-import plotly.express as px
 import dash_bootstrap_components as dbc
-from datetime import datetime
 from dash.exceptions import PreventUpdate
-import numpy as np
-from scipy.interpolate import griddata
 from dash import no_update
+
+import numpy as np
+import pandas as pd
+from datetime import datetime
+from scipy.interpolate import griddata
+
+import plotly.express as px
 import plotly.graph_objects as go
 
+
+
+#Librerias para obtener datos
+import boto3
+import pandas as pd
+from decimal import Decimal
+from io import BytesIO
 
 ### Estilos 
 
@@ -82,7 +90,6 @@ chat_button_style = {
     'right': '110px',  # Posición desde la derecha
     'z-index': '1000000',  # Z-index para asegurarse que esté sobre otros elementos
 }
-
 
 messages_container_style = {
     "display": "flex",
@@ -269,6 +276,8 @@ def plot_surface(X, Y, Z):
                        showbackground=True, 
                        zerolinecolor="white", 
                        tickfont=dict(size=12)),
+            
+            aspectratio=dict(x=2, y=1, z=1),  # Aquí se ajusta la relación de aspecto para hacer el eje X más ancho
             camera_eye=dict(x=1.5, y=1.5, z=0.5)
         ),
         margin=dict(l=65, r=50, b=65, t=90),
@@ -277,7 +286,7 @@ def plot_surface(X, Y, Z):
         
         font=dict(family="Arial, sans-serif", 
                   size=12, 
-                  color="black")
+                  color="black"),
     )
 
     # Ajustes de iluminación para mejorar el aspecto tridimensional
@@ -293,10 +302,64 @@ def crear_grafico(df, subyacente, tipo_opcion):
 # Establecer estilos de la aplicación y componentes externos
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
-# Leer el archivo CSV
-df = pd.read_csv('volatilidades_new.csv')
+
+# Obtenemos datos
+
+# Inicializar un cliente de DynamoDB
+dynamodb = boto3.resource('dynamodb')
+
+# Seleccionar la tabla
+table = dynamodb.Table('Volatilidades')
+
+response = table.scan()
+data = response['Items']
+
+# Convertir la lista de diccionarios a DataFrame
+df = pd.DataFrame(data)
+
+# Convertir todas las columnas que contienen decimales a flotantes
+for column in ['Vol_call', 'Strike', 'Vol_put']:
+    df[column] = df[column].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+    
+df = df.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
+
+# Ordenar los datos primero por 'Fecha' y luego por 'Strike'
+df = df.sort_values(by=['Fecha', 'Strike'])
+
+# Resetear el índice del DataFrame
+df = df.reset_index(drop=True)
+
+# Reemplazar valores menores que 0.001 en 'Vol_call' y 'Vol_put' por NaN
+df['Vol_call'] = df['Vol_call'].mask(df['Vol_call'] < 0.001, np.nan)
+df['Vol_put'] = df['Vol_put'].mask(df['Vol_put'] < 0.001, np.nan)
+
+
+
+# Crear un cliente S3
+s3 = boto3.client('s3')
+
+# Definir el nombre del bucket y la clave del archivo
+bucket_name = 'miax-12-scrap-meff'
+file_key = 'datos_futuros.json'
+
+# Obtener el objeto S3
+response = s3.get_object(Bucket=bucket_name, Key=file_key)
+
+# Leer el contenido del objeto
+file_content = response['Body'].read()
+
+# Convertir bytes a un objeto similar a un archivo usando BytesIO
+json_bytes = BytesIO(file_content)
+
+# Cargar el contenido del objeto BytesIO en un DataFrame
+df_futuro = pd.read_json(json_bytes)
+
+
+
+# Obtenemos datos necesarios para representar las volatilidades
 unique_dates = df['Fecha'].unique()
-precio_subyacente = 10849.5  # Este valor debe ser el precio actual del subyacente
+precio_subyacente = df_futuro.loc[0, 'Ant']
+
 
 # Asumiendo que 'messages' es una variable global o de sesión que almacena los mensajes
 messages = []
@@ -372,25 +435,32 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     if triggered_id in ['btn-call', 'btn-put']:
         # Ajustar la lógica de selección basada en qué botón fue presionado
         if triggered_id == 'btn-call':
+            filtered_df = filtered_df.dropna(subset=['Vol_call'])
             fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                           markers=True)
             call_style = active_button_style
             put_style = button_style
             selected_menu = triggered_id
+            
         elif triggered_id == 'btn-put':
+            filtered_df = filtered_df.dropna(subset=['Vol_put'])
             fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                           markers=True)
             call_style = button_style
             put_style = active_button_style
             selected_menu = triggered_id
+            
     else:
         # Usar el estado actual del menú para determinar el gráfico y estilos
         if selected_menu == 'btn-call':
+            filtered_df = filtered_df.dropna(subset=['Vol_call'])
             fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                           markers=True)
             call_style = active_button_style
             put_style = button_style
+            
         elif selected_menu == 'btn-put':
+            filtered_df = filtered_df.dropna(subset=['Vol_put'])
             fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                           markers=True)
             call_style = button_style

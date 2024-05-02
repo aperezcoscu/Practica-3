@@ -251,12 +251,12 @@ df_opciones['Vol_put'] = df_opciones.apply(lambda row: implied_volatility(row['P
 
 volatilidades = df_opciones.loc[:, ['Strike', 'Vol_call', 'Vol_put']]
 
-print(df_opciones)
+print(df_futuros)
 
 try:
     # Asumiendo que df_opciones ya está correctamente procesado y configurado
     # Guardar el DataFrame en un archivo CSV, incluyendo el índice
-    volatilidades.to_csv('volatilidades.csv', index=True)
+    volatilidades.to_csv('volatilidades_new.csv', index=True)
     print("El archivo ha sido guardado exitosamente.")
 except Exception as e:
     print("Error al guardar el archivo:", e)
