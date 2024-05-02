@@ -127,14 +127,22 @@ def plot_surface(X, Y, Z, title='Superficie de Volatilidad'):
     fig.update_traces(lighting=dict(ambient=0.3, diffuse=0.7, fresnel=0.1, specular=0.5, roughness=0.5))
     
     fig.show()
+    
+def crear_grafico(df, subyacente, tipo_opcion):
+    T_type, M_type, IV_type = preparar_datos(df, subyacente, tipo_opcion)
+    return plot_surface(T_type, M_type, IV_type)
 
 
 # Ejemplo de uso:
-df = pd.read_csv('volatilidades.csv')
+df_final = pd.read_csv('volatilidades.csv')
 precio_subyacente = 11123.70  # Este valor debe ser el precio actual del subyacente
 
 
-T_call, M_call, IV_call = preparar_datos(df, precio_subyacente, 'call')
 
 
-call_surface = plot_surface(T_call, M_call, IV_call)
+if __name__ == "__main__":
+    # Llamada a la función con los parámetros adecuados
+    print(crear_grafico(df_final, precio_subyacente, 'call'))
+
+
+

@@ -8,6 +8,9 @@ import dash_bootstrap_components as dbc
 from datetime import datetime
 from dash.exceptions import PreventUpdate
 import numpy as np
+from scipy.interpolate import griddata
+from dash import no_update
+import plotly.graph_objects as go
 
 
 ### Estilos 
@@ -61,11 +64,31 @@ content_style = {
 
 
 # Estilos chatbot
+chat_button_style = {
+    'font-size': '16px',
+    'background-color': 'rgb(0, 0, 0)',  # Color de fondo negro
+    'color': 'rgb(255, 255, 255)',  # Color de texto blanco
+    'border-radius': '50%',  # Hace el botón completamente redondo
+    'padding': '10px',  # Espacio interno uniforme
+    'width': '65px',  # Ancho fijo
+    'height': '65px',  # Altura fija, igual al ancho para ser un círculo perfecto
+    'border': 'none',  # Sin borde
+    'cursor': 'pointer',  # Cursor en forma de mano al pasar por encima
+    'display': 'flex',  # Uso de Flexbox para centrar el texto
+    'justify-content': 'center',  # Centrado horizontal del texto
+    'align-items': 'center',  # Centrado vertical del texto
+    'position': 'fixed',  # Posición fija en la pantalla
+    'bottom': '35px',  # Posición desde abajo
+    'right': '110px',  # Posición desde la derecha
+    'z-index': '1000000',  # Z-index para asegurarse que esté sobre otros elementos
+}
+
+
 messages_container_style = {
     "display": "flex",
     "flex-direction": "column",
     "height": "300px",
-    "overflow-y": "auto"
+    "overflow-y": "auto",
 }
 
 # Estilos para los botones y mensajes del chatbot
@@ -131,9 +154,16 @@ options_container_style = {
     'gap': '5px',  # Ajusta el espacio entre botones
 }
 
+chatbot_modal_style = {
+    'position': 'fixed',  # Posicionamiento fijo respecto al viewport
+    'bottom': '105px',  # Altura desde el bottom, debe ser mayor que la del botón para que aparezca encima
+    'right': '110px',  # Alineado con el botón derecho
+    'width': '350px',  # Ancho fijo del modal
+    'z-index': '1000001',  # Asegurándose de que está por encima de otros elementos, incluso el botón
+}
+
 
 # Funciones Volatilidad
-
 def calcular_tiempo_a_madurez(df):
     """
     Calcula el tiempo hasta la madurez desde la fecha actual hasta las fechas en la columna 'Fecha' del DataFrame dado.
@@ -195,7 +225,7 @@ def preparar_datos(df, precio_subyacente, tipo_opcion):
 
     return T_grid, M_grid, IV_grid
 
-def plot_surface(X, Y, Z, title='Superficie de Volatilidad'):
+def plot_surface(X, Y, Z):
     """
     Crea y muestra un gráfico de superficie usando Plotly.
 
@@ -216,10 +246,8 @@ def plot_surface(X, Y, Z, title='Superficie de Volatilidad'):
     
     # Personalizar la apariencia del gráfico
     fig.update_layout(
-        title=title,
         autosize=False,
-        width=600,
-        height=600,
+        height=800,
         scene=dict(
             xaxis=dict(title='Maturity Time', 
                        backgroundcolor="rgb(200, 200, 230)", 
@@ -249,15 +277,17 @@ def plot_surface(X, Y, Z, title='Superficie de Volatilidad'):
         
         font=dict(family="Arial, sans-serif", 
                   size=12, 
-                  color="darkblue")
+                  color="black")
     )
 
     # Ajustes de iluminación para mejorar el aspecto tridimensional
     fig.update_traces(lighting=dict(ambient=0.3, diffuse=0.7, fresnel=0.1, specular=0.5, roughness=0.5))
     
-    fig.show()
-
-
+    return fig
+    
+def crear_grafico(df, subyacente, tipo_opcion):
+    T_type, M_type, IV_type = preparar_datos(df, subyacente, tipo_opcion)
+    return plot_surface(T_type, M_type, IV_type)
 
 
 # Establecer estilos de la aplicación y componentes externos
@@ -276,14 +306,15 @@ app.layout = html.Div([
     html.Div([
         html.H2('Perfil de volatilidad implícita', style={'margin-bottom': '30px'}),
         html.Hr(),
-        html.P('Tipo de opción', style={'font-weight': 'bold'}),
+        html.P('Volatilidad implícita', style={'font-weight': 'bold'}),
         html.Button('Opciones Call', id='btn-call', n_clicks=0, style=button_style),
         html.Button('Opciones Put', id='btn-put', n_clicks=0, style=button_style),
         html.Hr(),
         html.P('Superficie de volatilidad', style={'font-weight': 'bold'}),
-        html.Button('Visualizar superficie', id='btn-visualize-surface', n_clicks=0, style=button_style),  # Nuevo botón aquí
+        html.Button('Visualizar Volatilidad', id='btn-visualize', n_clicks=0, style=button_style),
     ], style=sidebar_style),
     html.Div([
+        html.H2("Volatilidad implícita", className="text-left", style={'margin-bottom': '30px'}),
         html.Div([
             html.Label('Escoge la fecha a visualizar:', style={'margin-right': '10px', 'color': 'black'}),
             dcc.Dropdown(
@@ -295,10 +326,9 @@ app.layout = html.Div([
         ], style={'display': 'flex', 'align-items': 'center', 'margin-bottom': '20px', 'margin-left': '10px'}),
         dcc.Graph(id='volatility-graph', style={'margin-top': '10px'})
     ], style=content_style),
-    
+    html.Div(id='dynamic-content', style=content_style),
     # Elementos del Chatbot
-    dbc.Button("Chat", id="chatbot-toggle-button", className="btn-circle", n_clicks=0,
-               style={"position": "fixed", "bottom": "15px", "right": "15px", "z-index": "1000000"}),
+    dbc.Button("Chatbot", id="chatbot-toggle-button", n_clicks=0, style=chat_button_style),
     dbc.Modal([
         dbc.ModalHeader(dbc.ModalTitle("Volatility Chatbot")),
         dbc.ModalBody([
@@ -313,11 +343,10 @@ app.layout = html.Div([
             ], id="more-info-options", style={"display": "none"})
         ]),
         dbc.ModalFooter()
-    ], id="chatbot-container", is_open=False, style={"position": "fixed", "bottom": "90px", "right": "15px", "width": "350px"})
+    ], id="chatbot-container", is_open=False, style=chatbot_modal_style)
 ])
 
-
-# Mantén un estado global para el menú seleccionado
+### Volatilidad implícita
 selected_menu = "btn-call"
 
 @app.callback(
@@ -394,7 +423,76 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     return [call_style, put_style, fig]
 
 
-# Chatbot
+### Superficie volatilidad
+@app.callback(
+    [Output('dynamic-content', 'children'),
+     Output('btn-visualize', 'style')],
+    [Input('btn-visualize', 'n_clicks')],
+    [State('dynamic-content', 'children')]
+)
+def update_visualization_area(n_clicks, children):
+    if n_clicks is None or n_clicks == 0:
+        return no_update, button_style
+
+    if children:
+        return None, button_style
+    else:
+        # El contenido de las columnas
+        column1_content = html.Div([
+            html.H4("¿Qué es?"),
+            html.P("""
+                La superficie de volatilidad es una representación gráfica tridimensional que ilustra cómo la 
+                volatilidad implícita de opciones varía con el precio de ejercicio y el tiempo hasta la expiración. 
+                Esta visualización ayuda a entender cómo el mercado percibe futuros movimientos del activo subyacente 
+                bajo diferentes condiciones de mercado.
+                """, style={'text-align': 'justify'})
+        ], className="mb-3 p-2")
+
+        column2_content = html.Div([
+            html.H4("¿Para qué sirve?"),
+            html.P("""
+                La superficie de volatilidad es esencial para los traders y analistas financieros ya que proporciona 
+                insights sobre la expectativa de volatilidad en el mercado. Facilita la identificación de oportunidades 
+                de arbitraje y ayuda en la toma de decisiones estratégicas para la gestión de riesgos y la valorización 
+                de opciones.
+                """, style={'text-align': 'justify'})
+        ], className="mb-3 p-2")
+
+        # Dropdown para seleccionar entre Call y Put
+        option_selector = html.Div([
+            html.Label('Escoge la superficie que desees visualizar:', style={'margin-right': '10px', 'color': 'black'}),
+            dcc.Dropdown(
+                id='option-dropdown',
+                options=[
+                    {'label': 'Call Options', 'value': 'call'},
+                    {'label': 'Put Options', 'value': 'put'}
+                ],
+                value='call',
+                style={'width': '200px', 'display': 'inline-block', 'vertical-align': 'middle', 'border-radius': '10px'}
+            )
+        ], style={'display': 'flex', 'align-items': 'center', 'justify-content': 'flex-start', 'flex-wrap': 'wrap', 'padding': '20px 0'})
+
+        content = html.Div([
+            html.H2("Superficie de Volatilidad", className="text-left mb-2", style={'border-bottom': '1px solid grey', 'padding-bottom': '25px'}),
+            dbc.Row([
+                dbc.Col(column1_content, width=6, style={'padding-left': '50px', 'padding-right': '50px', 'border-right': '1px solid grey'}),  
+                dbc.Col(column2_content, width=6, style={'padding-left': '50px', 'padding-right': '50px'})
+            ], className="g-2"),
+            option_selector,
+            dcc.Graph(id='surface-volatility-graph')  # El gráfico específico para la superficie de volatilidad
+        ], style={'padding': '10px'})
+
+        return content, active_button_style
+
+@app.callback(
+    Output('surface-volatility-graph', 'figure'),  # Actualizar el gráfico en la interfaz
+    [Input('option-dropdown', 'value')]  # Escuchar los cambios en el dropdown
+)
+def update_surface_graph(option_type):
+    return crear_grafico(df, precio_subyacente, option_type)  # Usar df_final como ejemplo
+
+
+### Chatbot
 @app.callback(
     [Output("chatbot-container", "is_open"),
      Output("messages-container", "children"),
@@ -409,6 +507,7 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     [State("chatbot-container", "is_open")],
     prevent_initial_call=True
 )
+
 def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, more_info_yes_clicks, more_info_no_clicks, is_open):
     global messages
     ctx = dash.callback_context
@@ -459,7 +558,6 @@ def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, mo
         goodbye_message = dbc.Card(dbc.CardBody("Gracias por utilizar nuestro chat sobre volatilidad implícita. ¡Hasta pronto!"), style=message_button_style)
         messages.append(goodbye_message)
         return True, messages, {"display": "none"}, {"display": "none"}, str(datetime.now().timestamp())
-
 
 # Ejecución del servidor
 if __name__ == "__main__":
