@@ -74,7 +74,6 @@ def subir_a_dynamodb(df):
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
-
 # Inicializar el cliente de DynamoDB
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('Volatilidades')  # Nombre de tu tabla de DynamoDB
