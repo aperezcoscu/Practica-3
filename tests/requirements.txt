@@ -1,0 +1,9 @@
+pytest
+flake8
+freezegun
+pandas
+dash
+dash-bootstrap-components
+numpy
+plotly
+boto3

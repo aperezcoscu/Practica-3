@@ -8,7 +8,6 @@ from freezegun import freeze_time
 import pandas as pd
 from interfaz_final import calcular_tiempo_a_madurez 
 
-
 @freeze_time("2022-01-01")
 def test_calcular_tiempo_a_madurez():
     # Crear un DataFrame de prueba
@@ -23,3 +22,4 @@ def test_calcular_tiempo_a_madurez():
 
     # Verificar que el resultado sea el esperado
     pd.testing.assert_series_equal(result, expected, rtol=1e-3)  # Ajusta la tolerancia según sea necesario
+    
