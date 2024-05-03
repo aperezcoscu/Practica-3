@@ -9,11 +9,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from scipy.interpolate import griddata
+from datetime import date
 
 import plotly.express as px
 import plotly.graph_objects as go
-
-
 
 #Librerias para obtener datos
 import boto3
@@ -254,7 +253,7 @@ def plot_surface(X, Y, Z):
     # Personalizar la apariencia del gráfico
     fig.update_layout(
         autosize=False,
-        height=800,
+        height=700,
         scene=dict(
             xaxis=dict(title='Maturity Time', 
                        backgroundcolor="rgb(200, 200, 230)", 
@@ -277,10 +276,10 @@ def plot_surface(X, Y, Z):
                        zerolinecolor="white", 
                        tickfont=dict(size=12)),
             
-            aspectratio=dict(x=2, y=1, z=1),  # Aquí se ajusta la relación de aspecto para hacer el eje X más ancho
-            camera_eye=dict(x=1.5, y=1.5, z=0.5)
+            aspectratio=dict(x=2, y=0.8, z=0.8),  # Aquí se ajusta la relación de aspecto para hacer el eje X más ancho
+            camera_eye=dict(x=0, y=1.7, z=0.2)
         ),
-        margin=dict(l=65, r=50, b=65, t=90),
+        margin=dict(l=25, r=25, b=25, t=25),
         
         paper_bgcolor='rgb(243, 243, 243)',
         
@@ -293,6 +292,7 @@ def plot_surface(X, Y, Z):
     fig.update_traces(lighting=dict(ambient=0.3, diffuse=0.7, fresnel=0.1, specular=0.5, roughness=0.5))
     
     return fig
+    
     
 def crear_grafico(df, subyacente, tipo_opcion):
     T_type, M_type, IV_type = preparar_datos(df, subyacente, tipo_opcion)
@@ -309,7 +309,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 dynamodb = boto3.resource('dynamodb')
 
 # Seleccionar la tabla
-table = dynamodb.Table('Volatilidades')
+table = dynamodb.Table('volatiliy_table')
 
 response = table.scan()
 data = response['Items']
@@ -355,9 +355,17 @@ json_bytes = BytesIO(file_content)
 df_futuro = pd.read_json(json_bytes)
 
 
+# Comprobamos que no nos encontramos en la fecha actual de vencimiento
+today = str(date.today())
 
 # Obtenemos datos necesarios para representar las volatilidades
 unique_dates = df['Fecha'].unique()
+
+# Filtramos para excluir la fecha de hoy
+unique_dates = unique_dates[unique_dates != today]
+
+# Convertimos el resultado final a un arreglo de NumPy con dtype object
+unique_dates = np.array(unique_dates, dtype=object)
 precio_subyacente = df_futuro.loc[0, 'Ant']
 
 
