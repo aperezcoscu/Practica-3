@@ -190,7 +190,7 @@ def subir_a_s3(data, bucket_name, object_name):
     """
     try:
         s3_client.put_object(Body=data, Bucket=bucket_name, Key=object_name)
-        print(f'Datos almacenados correctamente en {bucket_name}/{object_name} y deployment realizado')
+        print(f'Datos almacenados correctamente en {bucket_name}/{object_name}.')
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
@@ -220,7 +220,7 @@ def lambda_handler(event, context):
         subir_a_s3(futuros_json, bucket_name, futuros_object_name)
         return {
             'statusCode': 200,
-            'body': json.dumps('Datos subidos a S3 correctamente y deployment realizado')
+            'body': json.dumps('Datos subidos a S3 correctamente.')
         }
     else:
         return {
