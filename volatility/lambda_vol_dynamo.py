@@ -54,22 +54,6 @@ def implied_volatility(option_price, S, K, T, r, option_type):
     except ValueError:
         return np.nan  
 
-
-def subir_a_s3(data, bucket_name, object_name):
-    """
-    Sube los datos al bucket de S3 especificado.
-
-    Args:
-    - data (str): Datos en formato JSON.
-    - bucket_name (str): Nombre del bucket de S3.
-    - object_name (str): Nombre del objeto en S3.
-    """
-    try:
-        s3_client.put_object(Body=data, Bucket=bucket_name, Key=object_name)
-        print(f'Datos subidos correctamente {bucket_name}/{object_name}')
-    except Exception as e:
-        print(f'Se ha producido un error: {e}')
-
 def subir_a_dynamodb(df):
     """
     Sube los datos al DynamoDB especificado.
@@ -114,7 +98,7 @@ def lambda_handler(event, context):
     df_futuros = pd.read_json(futuros_io)
 
     price_sub = df_futuros['Ant'].iloc[0] if not df_futuros.empty else 0
-    rfr = 0.01  # Tasa de interés libre de riesgo
+    rfr = 0  # Tasa de interés libre de riesgo
 
     # Calcular la volatilidad implícita para cada opción en df_opciones
     df_opciones['Vol_call'] = df_opciones.apply(
@@ -122,7 +106,7 @@ def lambda_handler(event, context):
     df_opciones['Vol_put'] = df_opciones.apply(
         lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
-    df_volatilidades = df_opciones.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
+    df_volatilidades = df_opciones.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put', 'Fecha_scrap']]
 
     # Subir a DynamoDB
     subir_a_dynamodb(df_volatilidades)

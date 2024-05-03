@@ -164,6 +164,9 @@ def datos_opciones(tipo_tabla, response):
     df_final['Precio_call'] = df_final.apply(lambda row: calcular_precio_opcion(row, 'call'), axis=1)
     df_final['Precio_put'] = df_final.apply(lambda row: calcular_precio_opcion(row, 'put'), axis=1)
 
+    # Añadir la columna 'Fecha_scrap' con la fecha actual
+    df_final['Fecha_scrap'] = datetime.now().date().isoformat()
+
     return df_final
 
 
