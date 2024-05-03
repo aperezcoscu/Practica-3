@@ -318,7 +318,6 @@ df['Vol_call'] = df['Vol_call'].mask(df['Vol_call'] < 0.001, np.nan)
 df['Vol_put'] = df['Vol_put'].mask(df['Vol_put'] < 0.001, np.nan)
 
 
-
 # Crear un cliente S3
 s3 = boto3.client('s3', region_name='eu-west-3')
 
