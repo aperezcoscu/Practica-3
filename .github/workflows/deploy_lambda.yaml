@@ -28,41 +28,46 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v1
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v4
 
       - name: Build and push image for volatility_ddb
+        id: build_image_volatility
         env:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
           ECR_REPOSITORY: volatility_ecr
+          DOCKERFILE_PATH: volatility/Dockerfile
         run: |
           cd volatility
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image_volatility=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update Lambda function volatility_ddb
         run: |
-          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name volatility_ddb --image-uri ${{ env.image_volatility }}
+          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name volatility_ddb --image-uri ${{ steps.build_image_volatility.outputs.image }}
 
       - name: Build and push image for scrapp_meff_s3
+        id: build_image_scrapping
         env:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
           ECR_REPOSITORY: scrapping_meff_s3_ecr
+          DOCKERFILE_PATH: scrap/dockerfile
         run: |
           cd scrap
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image_scrapping=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
       - name: Update Lambda function scrapp_meff_s3
         run: |
-          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name scrapp_meff_s3 --image-uri ${{ env.image_scrapping }}
+          aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name scrapp_meff_s3 --image-uri ${{ steps.build_image_scrapping.outputs.image }}
