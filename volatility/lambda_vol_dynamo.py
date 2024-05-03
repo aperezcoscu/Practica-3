@@ -71,13 +71,13 @@ def subir_a_dynamodb(df):
                 'Fecha_scrap': row['Fecha_scrap']
             }
             table.put_item(Item=item)
-        print('Datos almacenados correctamente.')
+        print('Datos almacenados correctamente a Volatility_table.')
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
 # Inicializar el cliente de DynamoDB
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('Volatilidades')  # Nombre de tu tabla de DynamoDB
+table = dynamodb.Table('volatiliy_table')  # Nombre de tu tabla de DynamoDB
 
 def lambda_handler(event, context):
     bucket = 'miax-12-scrap-meff'
@@ -106,17 +106,14 @@ def lambda_handler(event, context):
     df_opciones['Vol_put'] = df_opciones.apply(
         lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
-    df_volatilidades = df_opciones.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put', 'Fecha_scrap']]
-
+    df_volatilidades = df_opciones.loc[:, ['Fecha', 'Fecha_scrap', 'Strike', 'Vol_call', 'Vol_put']]
+    
     # Subir a DynamoDB
     subir_a_dynamodb(df_volatilidades)
-
     return {
         'statusCode': 200,
-        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB')
+        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y lambda actualizada.')
     }
-
 
 if __name__ == "__main__":
     print(lambda_handler({}, {}))
-    
