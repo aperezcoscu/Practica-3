@@ -623,4 +623,3 @@ def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, mo
 # Ejecución del servidor
 if __name__ == "__main__":
     app.run_server(debug=True, host='0.0.0.0', port=8050)
-    
