@@ -44,6 +44,12 @@ jobs:
           IMAGE_TAG=${{ github.sha }}
           ECR_REPOSITORY=app_volatility_ecr
           DOCKERFILE_PATH=interfaz/Dockerfile
-          cd interfaz
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f $DOCKERFILE_PATH .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Ensure the interfaz directory exists and contains the Dockerfile
+          if [ -d "interfaz" ] && [ -f "$DOCKERFILE_PATH" ]; then
+            cd interfaz
+            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          else
+            echo "Directory 'interfaz' or Dockerfile does not exist."
+            exit 1
+          fi
