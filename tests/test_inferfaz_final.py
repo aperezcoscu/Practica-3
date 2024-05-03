@@ -23,3 +23,4 @@ def test_calcular_tiempo_a_madurez():
     # Verificar que el resultado sea el esperado
     pd.testing.assert_series_equal(result, expected, rtol=1e-3)  # Ajusta la tolerancia según sea necesario
     
+    

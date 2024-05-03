@@ -36,3 +36,4 @@ jobs:
       run: |
         # Ejecutar pytest solo para el archivo específico
         pytest tests/test_interfaz_final.py
+
