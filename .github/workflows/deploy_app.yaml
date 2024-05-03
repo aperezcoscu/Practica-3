@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'interfaz/app.py'
+      - 'interfaz/**'
 
 env:
   AWS_REGION: eu-west-3
@@ -19,9 +19,8 @@ jobs:
     name: Build and Push Docker Image to ECR
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write
       packages: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -35,21 +34,18 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
         id: login_ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
+        id: build_image_app
+        env:
+          ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+          ECR_REPOSITORY: app_volatility_ecr
+          DOCKERFILE_PATH: interfaz/Dockerfile
         run: |
-          ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
-          IMAGE_TAG=${{ github.sha }}
-          ECR_REPOSITORY=app_volatility_ecr
-          DOCKERFILE_PATH=interfaz/Dockerfile
-          # Ensure the interfaz directory exists and contains the Dockerfile
-          if [ -d "interfaz" ] && [ -f "$DOCKERFILE_PATH" ]; then
-            cd interfaz
-            docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
-            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          else
-            echo "Directory 'interfaz' or Dockerfile does not exist."
-            exit 1
-          fi
+          cd interfaz
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
