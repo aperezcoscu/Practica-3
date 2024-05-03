@@ -1,4 +1,4 @@
-name: Run Python Tests and Flake8 for Specific File
+name: Run Python Tests and Flake8
 
 on:
   push:
