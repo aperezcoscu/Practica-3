@@ -1,38 +1,39 @@
-name: Run Python Tests and Flake8 for Specific File
+name: Run Python Tests and flake 8
 
 on:
-  push:
-    paths:
-      - 'tests/test_interfaz_final.py'
-  pull_request:
-    paths:
-      - 'tests/test_interfaz_final.py'
   workflow_dispatch:
+#  push:
+#    branches:
+#      - main
+#  pull_request:
+#    branches:
+#      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4  # Asegúrate de que esta versión sea la que soporte Node.js 20
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4  # Asegúrate de que esta versión sea la que soporte Node.js 20
       with:
-        python-version: '3.11'
+        python-version: '3.11'  # Asegúrate de usar la versión de Python que necesites
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # Asegúrate de que la ruta de requirements.txt es correcta.
-        pip install -r tests/requirements.txt
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Lint with flake8 on Specific File
+    - name: Lint with flake8
       run: |
-        # Asegúrate de que la ruta al archivo de test es correcta
-        flake8 tests/test_interfaz_final.py --count --show-source --statistics --exit-zero --max-complexity=10 --max-line-length=127
+        # Detener el workflow si hay errores de estilo
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Salida de advertencia para otros errores de estilo
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Test with pytest on Specific File
+    - name: Test with pytest
       run: |
-        # Ejecutar pytest solo para el archivo específico
-        pytest tests/test_interfaz_final.py
+        pytest
