@@ -67,7 +67,8 @@ def subir_a_dynamodb(df):
                 'Fecha': row['Fecha'],
                 'Strike': int(row['Strike']),
                 'Vol_call': None if pd.isna(row['Vol_call']) else Decimal(str(row['Vol_call'])),
-                'Vol_put': None if pd.isna(row['Vol_put']) else Decimal(str(row['Vol_put']))
+                'Vol_put': None if pd.isna(row['Vol_put']) else Decimal(str(row['Vol_put'])),
+                'Fecha_scrap': row['Fecha_scrap']
             }
             table.put_item(Item=item)
         print('Datos almacenados correctamente.')
