@@ -1,20 +1,18 @@
-# Utilizar una imagen base oficial de Python
-FROM python:3.11-slim
+# Usar una imagen base oficial de Python
+FROM python:3.11
 
 # Establecer el directorio de trabajo en el contenedor
 WORKDIR /app
 
-# Copiar el archivo de requisitos primero para aprovechar la caché de capas de Docker
-COPY interfaz/requirements_app.txt .
+# Copiar los archivos de requisitos y el script de la aplicación al directorio de trabajo
+COPY requirements_app.txt /app/
+COPY app.py /app/
 
-# Instalar las dependencias de Python
+# Instalar las dependencias
 RUN pip install --no-cache-dir -r requirements_app.txt
 
-# Copiar el resto de los archivos necesarios para la aplicación desde el directorio 'interfaz'
-COPY interfaz/ .
-
-# Exponer el puerto en el que se ejecutará la aplicación Dash
+# Exponer el puerto que utiliza Dash
 EXPOSE 8050
 
-# Definir el comando para ejecutar la aplicación
+# Comando para ejecutar la aplicación
 CMD ["python", "app.py"]

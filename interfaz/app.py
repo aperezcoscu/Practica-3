@@ -232,21 +232,6 @@ def preparar_datos(df, precio_subyacente, tipo_opcion):
     return T_grid, M_grid, IV_grid
 
 def plot_surface(X, Y, Z):
-    """
-    Crea y muestra un gráfico de superficie usando Plotly.
-
-    Args:
-    X (array-like): Coordenadas X de la malla de la superficie, 
-    representando el tiempo de madurez.
-    Y (array-like): Coordenadas Y de la malla de la superficie, 
-    representando la moneidad.
-    Z (array-like): Valores de la superficie (elevación) para 
-    cada par (X, Y), representando la volatilidad implícita.
-    title (str): Título del gráfico.
-
-    Returns:
-    None - Muestra un gráfico interactivo.
-    """
     # Crear el objeto figura y añadir la superficie
     fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='RdBu', cmin=Z.min(), cmax=Z.max())])
     
@@ -293,7 +278,6 @@ def plot_surface(X, Y, Z):
     
     return fig
     
-    
 def crear_grafico(df, subyacente, tipo_opcion):
     T_type, M_type, IV_type = preparar_datos(df, subyacente, tipo_opcion)
     return plot_surface(T_type, M_type, IV_type)
@@ -306,7 +290,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 # Obtenemos datos
 
 # Inicializar un cliente de DynamoDB
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource('dynamodb', region_name='eu-west-3')
 
 # Seleccionar la tabla
 table = dynamodb.Table('volatiliy_table')
@@ -336,7 +320,7 @@ df['Vol_put'] = df['Vol_put'].mask(df['Vol_put'] < 0.001, np.nan)
 
 
 # Crear un cliente S3
-s3 = boto3.client('s3')
+s3 = boto3.client('s3', region_name='eu-west-3')
 
 # Definir el nombre del bucket y la clave del archivo
 bucket_name = 'miax-12-scrap-meff'
@@ -640,4 +624,4 @@ def manage_chatbot(chat_button_clicks, option_call_clicks, option_put_clicks, mo
 
 # Ejecución del servidor
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=True, host='0.0.0.0', port=8050)

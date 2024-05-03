@@ -1,17 +1,24 @@
-## Interfaz moderna
-
+# Librerias interfaz
 import dash
 from dash import html, dcc, Input, Output, State, callback
-import pandas as pd
-import plotly.express as px
 import dash_bootstrap_components as dbc
-from datetime import datetime
 from dash.exceptions import PreventUpdate
-import numpy as np
-from scipy.interpolate import griddata
 from dash import no_update
+
+import numpy as np
+import pandas as pd
+from datetime import datetime
+from scipy.interpolate import griddata
+from datetime import date
+
+import plotly.express as px
 import plotly.graph_objects as go
 
+#Librerias para obtener datos
+import boto3
+import pandas as pd
+from decimal import Decimal
+from io import BytesIO
 
 ### Estilos 
 
@@ -82,7 +89,6 @@ chat_button_style = {
     'right': '110px',  # Posición desde la derecha
     'z-index': '1000000',  # Z-index para asegurarse que esté sobre otros elementos
 }
-
 
 messages_container_style = {
     "display": "flex",
@@ -226,28 +232,13 @@ def preparar_datos(df, precio_subyacente, tipo_opcion):
     return T_grid, M_grid, IV_grid
 
 def plot_surface(X, Y, Z):
-    """
-    Crea y muestra un gráfico de superficie usando Plotly.
-
-    Args:
-    X (array-like): Coordenadas X de la malla de la superficie, 
-    representando el tiempo de madurez.
-    Y (array-like): Coordenadas Y de la malla de la superficie, 
-    representando la moneidad.
-    Z (array-like): Valores de la superficie (elevación) para 
-    cada par (X, Y), representando la volatilidad implícita.
-    title (str): Título del gráfico.
-
-    Returns:
-    None - Muestra un gráfico interactivo.
-    """
     # Crear el objeto figura y añadir la superficie
     fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='RdBu', cmin=Z.min(), cmax=Z.max())])
     
     # Personalizar la apariencia del gráfico
     fig.update_layout(
         autosize=False,
-        height=800,
+        height=700,
         scene=dict(
             xaxis=dict(title='Maturity Time', 
                        backgroundcolor="rgb(200, 200, 230)", 
@@ -269,15 +260,17 @@ def plot_surface(X, Y, Z):
                        showbackground=True, 
                        zerolinecolor="white", 
                        tickfont=dict(size=12)),
-            camera_eye=dict(x=1.5, y=1.5, z=0.5)
+            
+            aspectratio=dict(x=2, y=0.8, z=0.8),  # Aquí se ajusta la relación de aspecto para hacer el eje X más ancho
+            camera_eye=dict(x=0, y=1.7, z=0.2)
         ),
-        margin=dict(l=65, r=50, b=65, t=90),
+        margin=dict(l=25, r=25, b=25, t=25),
         
         paper_bgcolor='rgb(243, 243, 243)',
         
         font=dict(family="Arial, sans-serif", 
                   size=12, 
-                  color="black")
+                  color="black"),
     )
 
     # Ajustes de iluminación para mejorar el aspecto tridimensional
@@ -293,10 +286,75 @@ def crear_grafico(df, subyacente, tipo_opcion):
 # Establecer estilos de la aplicación y componentes externos
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
-# Leer el archivo CSV
-df = pd.read_csv('volatilidades_new.csv')
+
+# Obtenemos datos
+# Establecer estilos de la aplicación y componentes externos
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
+
+# Obtenemos datos
+
+def dynamo_db_table(name_table):
+    # Inicializar un cliente de DynamoDB
+    dynamodb = boto3.resource('dynamodb', region_name='eu-west-3')
+
+    # Seleccionar la tabla
+    table = dynamodb.Table(name_table)
+
+    # Escanear la tabla y obtener datos
+    response = table.scan()
+    data = response['Items']
+
+    # Convertir la lista de diccionarios a DataFrame
+    df = pd.DataFrame(data)
+
+    # Convertir todas las columnas que contienen decimales a flotantes
+    for column in ['Vol_call', 'Strike', 'Vol_put']:
+        df[column] = df[column].apply(lambda x: float(x) if isinstance(x, Decimal) else x)
+
+    # Filtrar y ordenar el DataFrame
+    df = df.loc[:, ['Fecha', 'Strike', 'Vol_call', 'Vol_put']]
+    df = df.sort_values(by=['Fecha', 'Strike'])
+    df = df.reset_index(drop=True)
+
+    # Reemplazar valores menores que 0.001 en 'Vol_call' y 'Vol_put' por NaN
+    df['Vol_call'] = df['Vol_call'].mask(df['Vol_call'] < 0.001, np.nan)
+    df['Vol_put'] = df['Vol_put'].mask(df['Vol_put'] < 0.001, np.nan)
+
+    return df
+
+df = dynamo_db_table('volatiliy_table')
+
+
+def s3_datos(bucket_name, file_key):
+    # Crear un cliente S3
+    s3 = boto3.client('s3', region_name='eu-west-3')
+
+    # Definir el nombre del bucket y la clave del archivo
+    bucket_name = 'miax-12-scrap-meff'
+    file_key = 'datos_futuros.json'
+
+    # Obtener el objeto S3
+    response = s3.get_object(Bucket=bucket_name, Key=file_key)
+
+    # Leer el contenido del objeto
+    file_content = response['Body'].read()
+
+    # Convertir bytes a un objeto similar a un archivo usando BytesIO
+    json_bytes = BytesIO(file_content)
+
+    # Cargar el contenido del objeto BytesIO en un DataFrame
+    df = pd.read_json(json_bytes)
+
+    return df
+
+df_futuro = s3_datos('miax-12-scrap-meff', 'datos_futuros.json')
+
+
+
+# Obtenemos datos necesarios para representar las volatilidades
 unique_dates = df['Fecha'].unique()
-precio_subyacente = 10849.5  # Este valor debe ser el precio actual del subyacente
+precio_subyacente = df_futuro.loc[0, 'Ant']
+
 
 # Asumiendo que 'messages' es una variable global o de sesión que almacena los mensajes
 messages = []
@@ -372,25 +430,32 @@ def update_content(call_clicks, put_clicks, selected_date, call_style, put_style
     if triggered_id in ['btn-call', 'btn-put']:
         # Ajustar la lógica de selección basada en qué botón fue presionado
         if triggered_id == 'btn-call':
+            filtered_df = filtered_df.dropna(subset=['Vol_call'])
             fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                           markers=True)
             call_style = active_button_style
             put_style = button_style
             selected_menu = triggered_id
+            
         elif triggered_id == 'btn-put':
+            filtered_df = filtered_df.dropna(subset=['Vol_put'])
             fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                           markers=True)
             call_style = button_style
             put_style = active_button_style
             selected_menu = triggered_id
+            
     else:
         # Usar el estado actual del menú para determinar el gráfico y estilos
         if selected_menu == 'btn-call':
+            filtered_df = filtered_df.dropna(subset=['Vol_call'])
             fig = px.line(filtered_df, x='Strike', y='Vol_call', title='Volatilidad de Call en función del Strike',
                           markers=True)
             call_style = active_button_style
             put_style = button_style
+            
         elif selected_menu == 'btn-put':
+            filtered_df = filtered_df.dropna(subset=['Vol_put'])
             fig = px.line(filtered_df, x='Strike', y='Vol_put', title='Volatilidad de Put en función del Strike',
                           markers=True)
             call_style = button_style
