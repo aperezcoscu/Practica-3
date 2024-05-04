@@ -287,6 +287,7 @@ def crear_grafico(df, subyacente, tipo_opcion):
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
 
 
+
 # Obtenemos datos
 
 # Inicializar un cliente de DynamoDB
