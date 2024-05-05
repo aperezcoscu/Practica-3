@@ -1,6 +1,9 @@
-# AWS Application Deployment
+# Aplicación de Análisis de Volatilidad Implícita
 
-Este proyecto está diseñado para mejorar la funcionalidad de una aplicación usando servicios en la nube de AWS, implementando automatizaciones con GitHub Actions y procesando datos de manera eficiente con funciones Lambda.
+## Descripción
+Este proyecto es una aplicación web que tiene el objetivo de proporcionar análisis sobre la volatilidad implícita de las opciones del MINI IBEX. Para lograrlo, he integrado una serie de servicios de Amazon Web Services (AWS), entre ellos Lambda, ECR, DynamoDB, S3, EC2, EventBridge y el Simple Notification Service (SNS). Cada uno de estos servicios juega un papel importante en el procesamiento y almacenamiento de los datos, así como en la ejecución y manejo de la aplicación.
+
+La interfaz de usuario de la aplicación está diseñada para ser intuitiva y fácil de usar. Permite a los usuarios explorar detalladamente los datos de volatilidad implícita para las opciones call y put, y visualizar cómo estas métricas varían con el tiempo y con diferentes precios de ejercicio. Una característica distintiva del proyecto es su capacidad para mostrar la superficie de volatilidad, una herramienta visual que representa tridimensionalmente la volatilidad implícita en función del tiempo hasta el vencimiento y del precio de ejercicio de las opciones.
 
 ## Características
 
@@ -15,16 +18,93 @@ Este proyecto está diseñado para mejorar la funcionalidad de una aplicación u
 - **AWS EventBridge**: Programa las funciones Lambda con un cron específico.
 - **Almacenamiento AWS**:
   - **S3 Bucket (`scrap-miax-12`)**: Almacena los datos extraídos por la función de web scraping.
-  - **DynamoDB**: Almacena los resultados de la volatilidad calculados por la función de cálculo.
+  - **DynamoDB**: Almacena los resultados de la volatilidad calculados por la función de cálculo de volatilidad.
 - **API**:
-  - **FastAPI**: Provee una API para que la interfaz de usuario pueda acceder a los datos almacenados en DynamoDB.
+  - **Local API**: Se ha craedo una api local en la instancia para poder conectarnos a la base de datos y obtener las volatilidades de las diferentes opciones.
 - **Interfaz de Usuario (UI)**:
   - **Dash**: Aplicación web que permite visualizar y comparar skews de volatilidad, y muestra la superficie de volatilidad y su evolución.
 
-## Prerequisitos
+## Arquitectura del proyecto
 
-Para ejecutar este proyecto, necesitarás Python 3.6 o superior, además de las siguientes herramientas:
+El código de este proyecto se ha desarrollado utilizando Visual Studio y todo el código está alojado en un repositorio de GitHub, el cual está configurado con acciones automatizadas descritas en archivos YAML para gestionar las pruebas, el despliegue y la operación de la aplicación. A continuación se puede observar en la imagen la arquitectura del servicio creado:
+![Arquitectura aplicación](imagenes/arquitectura.png)
 
-- AWS CLI configurado con acceso a tu cuenta de AWS.
-- Docker (opcional para contenerización local).
+### Integración y despliegue
 
+**Pruebas y Reportes Automatizados**
+La primera acción de GitHub es crucial trata de mantener la calidad del código. Esta acción ejecuta análisis de estilo con flake8 y pruebas unitarias con pytest para verificar que todas las funciones cumplen con los estándares de calidad y funcionan como se espera.
+
+**Despliegue de Funciones Lambda**
+La segunda acción se encarga del despliegue automatizado de las dos funciones Lambda del proyecto. El procedimiento del despliegue de las funciones es el mismo, primero se crea una imagen en Docker, a continuación, se crea en ECR un repositorio para poder alojar la imagen de Docker, y finalmente se crean las funciones lambda.
+Para activar estas funciones se ha utilizado Eventbridge, el cual se ejecuta cada mañana de lunes a viernes a las 9:00AM. Las funciones son las siguientes:
+
+ - **Web Scraping de Datos**: Esta función realiza web scraping en la página de MEFF para obtener datos de opciones y futuros del MINI IBEX y los almacena en un bucket de S3.
+ - **Cálculo de Volatilidad Implícita**: La segunda función Lambda accede a estos datos almacenados en S3, calcula la volatilidad implícita para cada opción utilizando modelos financieros avanzados, y guarda los resultados en una base de datos DynamoDB. Un aviso por correo electrónico es enviado automáticamente una vez que estas tareas se completan.
+
+Una vez ejecutadas las lambdas, mediande SNS, se envía un correo a una dirección específica corroborando la ejecución de las dos lambdas.
+
+ - **Despliegue de la Aplicación**
+ La tercera acción de GitHub gestiona el despliegue de la interfaz de usuario. Compila la aplicación, crea una imagen Docker, y la sube a Amazon ECR. Desde allí, la aplicación se despliega en una instancia EC2.
+
+### API Local y Frontend
+**API local**
+Una API desarrollada localmente en la instancia EC2 permite acceder de forma segura a los datos de S3 y DynamoDB. Esta API es el puente entre los datos almacenados y la interfaz de usuario, asegurando que los usuarios tengan acceso a la información actualizada y relevante.
+
+
+## Características de la Interfaz de Usuario
+
+La interfaz de usuario de esta aplicación web está diseñada para ofrecer una experiencia intuitiva y educativa, permitiendo a los usuarios interactuar y profundizar en el análisis de la volatilidad de las opciones. Aquí están las características principales:
+
+### Menú de Opciones
+
+- **Selección de Volatilidad de Opciones Call y Put**: Desde un menú lateral, los usuarios pueden seleccionar si desean visualizar la volatilidad implícita de las opciones Call o Put, proporcionando un acceso rápido a la información más relevante según sus necesidades.
+
+### Filtros Interactivos
+
+- **Desplegables para Fechas y Vencimientos**: La aplicación incluye desplegables que permiten a los usuarios seleccionar la fecha del dato obtenido mediante scraping y los vencimientos de las opciones. Esto permite una personalización detallada de los gráficos y análisis mostrados, adaptando la información al contexto específico que el usuario desea explorar.
+
+### Visualización de la Superficie de Volatilidad
+
+- **Gráficos Interactivos y Explicaciones**: Una sección dedicada a la visualización de la superficie de volatilidad muestra gráficos tridimensionales interactivos que ilustran cómo la volatilidad implícita varía con el precio de ejercicio y el tiempo hasta el vencimiento. Esta herramienta visual es fundamental para entender las expectativas del mercado y la percepción del riesgo.
+
+A continuación se muestra un ejemplo de la superficie de volatilidad que se puede visualizar en la aplicación:
+
+![Superficie de Volatilidad](imagenes/superficie.png)
+
+Este gráfico tridimensional interativo permite a los usuarios entender cómo la volatilidad implícita varía con el precio de ejercicio y el tiempo hasta el vencimiento. La interfaz proporciona herramientas para manipular la vista del gráfico, ofreciendo una comprensión más profunda de las dinámicas del mercado.
+
+- **Información Educativa**: Acompañando a los gráficos, se ofrecen explicaciones detalladas que ayudan a los usuarios a comprender qué representa la superficie de volatilidad y cómo interpretarla, lo que convierte a la aplicación en un recurso educativo valioso.
+
+### Asistencia Interactiva
+
+- **Chatbot**: Para soporte adicional y educación sobre volatilidad implícita, la interfaz incluye un chatbot que puede responder preguntas frecuentes y proporcionar explicaciones sobre términos y conceptos relacionados con la volatilidad. Esta funcionalidad busca hacer la experiencia de usuario más accesible y enriquecedora, especialmente para aquellos nuevos en el análisis de mercados financieros.
+A continuación se muestra una imagen del chatbot.
+![Chatbot](imagenes/chatbot.png)
+
+
+## Prerrequisitos
+
+### Acceso a la Interfaz Web
+
+Para acceder a la interfaz de la aplicación y explorar las funcionalidades en vivo, visita la siguiente URL:
+
+http://13.37.203.83:8050/
+
+### Repositorio de Código Fuente
+
+El código fuente de la aplicación está disponible públicamente en GitHub. Puedes acceder al repositorio para revisar el código, realizar forks o contribuir al proyecto a través del siguiente enlace:
+
+https://github.com/aperezcoscu/Practica-3.git
+
+
+### Requisitos de Software
+
+Para trabajar localmente con el código o contribuir al desarrollo, necesitarás tener instalados los siguientes programas y librerías:
+
+- **Python**: La aplicación está escrita en Python, asegúrate de tener Python 3.8 o superior instalado.
+- **Librerías de Python**: Instalación de las librerías especificadas en el archivo `requirements_app.txt` del repositorio. Puedes instalarlas utilizando el comando:
+- **Docker:** Para ejecutar los contenedores localmente o construir nuevos, necesitarás Docker instalado y configurado en tu máquina.
+- **Acceso a AWS:** Para el despliegue de la aplicación o pruebas con servicios AWS, necesitarás credenciales de AWS configuradas en tu entorno local.
+
+**Configuración de AWS**
+Es necesario configurar las credenciales de AWS para interactuar con los servicios utilizados (Lambda, DynamoDB, S3, EC2). Asegúrate de configurar tu CLI de AWS con un perfil que tenga los permisos necesarios.

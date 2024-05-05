@@ -18,10 +18,6 @@ docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
 
 
 
-scrapping_meff_s3
-
-
-
 
 Conectar máquina virtual: 
 chmod 400 "keypair.pem"
@@ -40,7 +36,7 @@ docker run -d -p 8050:8050 \
   -e AWS_ACCESS_KEY_ID=AKIA6GBMFS2QS2RON2OM \
   -e AWS_SECRET_ACCESS_KEY=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 \
   -e AWS_DEFAULT_REGION=eu-west-3 \
-  975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_volatility_ecr:9a7775a9593a1d347d6f88338778242195b3e9a2
+  975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:526a217c7c8d69d8bd4ed48bb2030e0f32283057
 
 
 Dockers corriendo en máquina virtual: docker ps
