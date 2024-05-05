@@ -56,12 +56,14 @@ Una vez ejecutadas las lambdas, mediande SNS, se envía un correo a una direcci�
 ### API Local y Frontend
 **API local**
 Una API desarrollada localmente en la instancia EC2 permite acceder de forma segura a los datos de S3 y DynamoDB. Esta API es el puente entre los datos almacenados y la interfaz de usuario, asegurando que los usuarios tengan acceso a la información actualizada y relevante.
-A continuación se muestra una imagen de la interfaz:
-![Interfaz de usuario](imagenes/interfaz.png)
 
 ## Características de la Interfaz de Usuario
 
-La interfaz de usuario de esta aplicación web está diseñada para ofrecer una experiencia intuitiva y educativa, permitiendo a los usuarios interactuar y profundizar en el análisis de la volatilidad de las opciones. Aquí están las características principales:
+La interfaz de usuario de esta aplicación web está diseñada para ofrecer una experiencia intuitiva y educativa, permitiendo a los usuarios interactuar y profundizar en el análisis de la volatilidad de las opciones. A continuación se muestra una imagen de la interfaz:
+![Interfaz de usuario](imagenes/interfaz.png)
+
+
+Las características principales de la interfaz son las siguientes:
 
 ### Menú de Opciones
 
