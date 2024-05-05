@@ -2,19 +2,19 @@ Conexión AWS:
 aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 975050217121.dkr.ecr.eu-west-3.amazonaws.com
 
 Imagen docker: 
-docker build -t api_dynamo .
-docker tag api_dynamo:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
+docker build -t app_dash .
+docker tag app_dash:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
 
 
 Creamos ECR en aws:
-aws ecr create-repository --repository-name api_dynamo_ecr --region eu-west-3
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
+aws ecr create-repository --repository-name app_dash_ecr --region eu-west-3
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
 
 
 
 Para actualizar la imagen en docker y subirla a ECR
-docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest .
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
+docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest .
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
 
 
 
@@ -27,12 +27,20 @@ Conectar máquina virtual:
 chmod 400 "keypair.pem"
 ssh -i "keypair.pem" ec2-user@ec2-13-37-203-83.eu-west-3.compute.amazonaws.com
 
-# Correr máquina virtual en segundo plano
+# Correr máquina virtual
 docker run -p 8050:8050 \
   -e AWS_ACCESS_KEY_ID=AKIA6GBMFS2QS2RON2OM \
   -e AWS_SECRET_ACCESS_KEY=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 \
   -e AWS_DEFAULT_REGION=eu-west-3 \
-  975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_volatility_ecr:latest
+  975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
+
+
+En segundo plano:
+docker run -d -p 8050:8050 \
+  -e AWS_ACCESS_KEY_ID=AKIA6GBMFS2QS2RON2OM \
+  -e AWS_SECRET_ACCESS_KEY=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 \
+  -e AWS_DEFAULT_REGION=eu-west-3 \
+  975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_volatility_ecr:9a7775a9593a1d347d6f88338778242195b3e9a2
 
 
 Dockers corriendo en máquina virtual: docker ps
@@ -42,11 +50,15 @@ b92f682834db es el id del contenedor
 
 Parar docker: docker stop c92e15498b53
 
+docker run -p 8050:8050 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_dash_ecr:latest
 
 
 APIS:
 
 Conectar API: uvicorn creacion_api:app --reload
+Segundo plano: nohup uvicorn creacion_api:app --reload --host 0.0.0.0 --port 8000 &
 
-Apis conectadas: ps aux | grep uvicorn
+
+Apis conectadas: ps aux | grep uvicorn | grep -v grep
+
 Detener API kill 1234
