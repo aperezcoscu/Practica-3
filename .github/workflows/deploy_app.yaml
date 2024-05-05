@@ -47,7 +47,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-          ECR_REPOSITORY: app_volatility_ecr
+          ECR_REPOSITORY: app_dash_ecr
           DOCKERFILE_PATH: interfaz/Dockerfile
         run: |
           cd interfaz

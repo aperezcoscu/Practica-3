@@ -333,7 +333,6 @@ def datos_s3(url):
 api_url = "http://172.31.46.128:8000/volatilities/"
 api_futuros = "http://172.31.46.128:8000/datos-futuros"
 
-
 # Obtener los datos de la API 
 df = datos_dynamodb(api_url)
 df_futuro = datos_s3(api_futuros)
