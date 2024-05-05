@@ -108,3 +108,7 @@ Para trabajar localmente con el código o contribuir al desarrollo, necesitarás
 
 **Configuración de AWS**
 Es necesario configurar las credenciales de AWS para interactuar con los servicios utilizados (Lambda, DynamoDB, S3, EC2). Asegúrate de configurar tu CLI de AWS con un perfil que tenga los permisos necesarios.
+
+## Contacto
+
+Para soporte, envía un correo a aperezcoscu@gmail.com.
