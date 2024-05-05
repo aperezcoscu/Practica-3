@@ -330,8 +330,8 @@ def datos_s3(url):
         return pd.DataFrame()  # Retorna un DataFrame vacío en caso de error
 
 # URL de la API
-api_url = "http://localhost:8000/volatilities/"
-api_futuros = "http://localhost:8000/datos-futuros"
+api_url = "http://172.31.46.128:8000/volatilities/"
+api_futuros = "http://172.31.46.128:8000/datos-futuros"
 
 
 # Obtener los datos de la API 
