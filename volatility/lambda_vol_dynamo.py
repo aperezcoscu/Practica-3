@@ -55,7 +55,7 @@ def implied_volatility(option_price, S, K, T, r, option_type):
         return np.nan  
 
 def subir_a_dynamodb(df):
-    """
+    """  
     Sube los datos al DynamoDB especificado.
     Args:
     - df (DataFrame): DataFrame de Pandas que contiene los datos a subir.
@@ -75,45 +75,71 @@ def subir_a_dynamodb(df):
     except Exception as e:
         print(f'Se ha producido un error: {e}')
 
+
+def enviar_correo(resultado):
+    client = boto3.client('sns')
+
+    # Asegúrate de que este ARN es correcto y corresponde a un tema existente en SNS
+    topic_arn = 'arn:aws:sns:eu-west-3:975050217121:correo_update_volatilidad'
+
+    # Mensaje a enviar
+    message = resultado
+
+    # Publica el mensaje en el tema de SNS
+    response = client.publish(
+        TopicArn=topic_arn,
+        Message=message,
+        Subject='Actualización AWS'
+    )
+    return response
+
+
 # Inicializar el cliente de DynamoDB
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('volatiliy_table')  # Nombre de tu tabla de DynamoDB
 
 def lambda_handler(event, context):
-    bucket = 'miax-12-scrap-meff'
-    opciones_key = 'datos_opciones.json'
-    futuros_key = 'datos_futuros.json'
+    try:
+        bucket = 'miax-12-scrap-meff'
+        opciones_key = 'datos_opciones.json'
+        futuros_key = 'datos_futuros.json'
+        s3_client = boto3.client('s3')
+        
+        response_opciones = s3_client.get_object(Bucket=bucket, Key=opciones_key)
+        opciones_str = response_opciones['Body'].read().decode('utf-8')
+        opciones_io = StringIO(opciones_str)
+        df_opciones = pd.read_json(opciones_io)
 
-    # Leer datos de opciones
-    s3_client = boto3.client('s3')
-    response_opciones = s3_client.get_object(Bucket=bucket, Key=opciones_key)
-    opciones_str = response_opciones['Body'].read().decode('utf-8')
-    opciones_io = StringIO(opciones_str)
-    df_opciones = pd.read_json(opciones_io)
+        response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
+        futuros_str = response_futuros['Body'].read().decode('utf-8')
+        futuros_io = StringIO(futuros_str)
+        df_futuros = pd.read_json(futuros_io)
 
-    # Leer datos de futuros (para obtener el precio subyacente)
-    response_futuros = s3_client.get_object(Bucket=bucket, Key=futuros_key)
-    futuros_str = response_futuros['Body'].read().decode('utf-8')
-    futuros_io = StringIO(futuros_str)
-    df_futuros = pd.read_json(futuros_io)
+        price_sub = df_futuros['Ant'].iloc[0] if not df_futuros.empty else 0
+        rfr = 0  # Tasa de interés libre de riesgo
 
-    price_sub = df_futuros['Ant'].iloc[0] if not df_futuros.empty else 0
-    rfr = 0  # Tasa de interés libre de riesgo
+        df_opciones['Vol_call'] = df_opciones.apply(
+            lambda row: implied_volatility(row['Precio_call'], price_sub, row['Strike'], row['T'], rfr, 'call'), axis=1)
+        df_opciones['Vol_put'] = df_opciones.apply(
+            lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
 
-    # Calcular la volatilidad implícita para cada opción en df_opciones
-    df_opciones['Vol_call'] = df_opciones.apply(
-        lambda row: implied_volatility(row['Precio_call'], price_sub, row['Strike'], row['T'], rfr, 'call'), axis=1)
-    df_opciones['Vol_put'] = df_opciones.apply(
-        lambda row: implied_volatility(row['Precio_put'], price_sub, row['Strike'], row['T'], rfr, 'put'), axis=1)
-
-    df_volatilidades = df_opciones.loc[:, ['Fecha', 'Fecha_scrap', 'Strike', 'Vol_call', 'Vol_put']]
-    
-    # Subir a DynamoDB
-    subir_a_dynamodb(df_volatilidades)
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y lambda actualizada.')
-    }
+        df_volatilidades = df_opciones.loc[:, ['Fecha', 'Fecha_scrap', 'Strike', 'Vol_call', 'Vol_put']]
+        
+        # Subimos a dynamo las nuevas volatilidades
+        subir_a_dynamodb(df_volatilidades)
+        
+        # Enviamos correo para confirmar que se subieron las volatilidades
+        enviar_correo('Web scrapping y volatilidades actualizadas correctamente.')
+        return {
+            'statusCode': 200,
+            'body': json.dumps('Volatilidades subidas correctamente a DynamoDB y lambda actualizada.')
+        }
+    except Exception as e:
+        enviar_correo(f'Se ha producido un error en la lambda: {str(e)}')
+        return {
+            'statusCode': 500,
+            'body': json.dumps(f'Error al procesar la actualización: {str(e)}')
+        }
 
 if __name__ == "__main__":
     print(lambda_handler({}, {}))

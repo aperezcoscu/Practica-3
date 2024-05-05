@@ -71,3 +71,4 @@ jobs:
       - name: Update Lambda function scrapp_meff_s3
         run: |
           aws lambda update-function-code --region ${{ env.AWS_REGION }} --function-name scrapp_meff_s3 --image-uri ${{ steps.build_image_scrapping.outputs.image }}
+          
