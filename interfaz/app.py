@@ -21,8 +21,8 @@ import pandas as pd
 from decimal import Decimal
 from io import BytesIO
 
-### Estilos 
 
+### Estilos 
 # Estilos modernos para el sidebar y botones
 sidebar_style = {
     'position': 'fixed',
