@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 
 def create_dynamodb_table():
     dynamodb = boto3.resource('dynamodb')
-    table_name = 'Volatilidades'
+    table_name = 'Volatilidad-prueba-test'
     
     try:
         # Intenta crear la tabla
@@ -15,7 +15,7 @@ def create_dynamodb_table():
             AttributeDefinitions=[
                 {'AttributeName': 'id', 'AttributeType': 'S'}  # S significa String
             ],
-            ProvisionedThroughput={'ReadCapacityUnits': 1, 'WriteCapacityUnits': 1}
+            ProvisionedThroughput={'ReadCapacityUnits': 5, 'WriteCapacityUnits': 5}
         )
         table.wait_until_exists()
         print("Tabla creada exitosamente.")
