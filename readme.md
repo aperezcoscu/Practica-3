@@ -19,7 +19,7 @@ La interfaz de usuario de la aplicación está diseñada para ser intuitiva y f�
   - **Main Merge Workflow (`merge_main.yml`)**: Despliega la aplicación en AWS en cada merge a la rama main.
   - **Lambda Deployment Workflow (`lambda_deploy.yml`)**: Gestiona el despliegue de funciones Lambda.
 - **Funciones AWS Lambda**:
-  - **Función de Web Scraping**: Se ejecuta según un cron de AWS EventBridge a las 9:00 AM de lunes a viernes, guarda los datos en el S3 bucket.
+  - **Función de Web Scraping**: Se ejecuta según un cron de AWS EventBridge a las 10:00 AM de lunes a viernes, guarda los datos en el S3 bucket.
   - **Función de Cálculo de Volatilidad**: Procesa los datos del S3 bucket, calcula la volatilidad y los almacena en DynamoDB.
 - **AWS EventBridge**: Programa las funciones Lambda con un cron específico.
 - **SNS**: Al finalizar la ejecución de las funciones lambda, se envía un correo notificando de esto.
@@ -43,7 +43,7 @@ La primera acción de GitHub es crucial trata de mantener la calidad del código
 
 **Despliegue de Funciones Lambda**
 La segunda acción se encarga del despliegue automatizado de las dos funciones Lambda del proyecto. El procedimiento del despliegue de las funciones es el mismo, primero se crea una imagen en Docker, a continuación, se crea en ECR un repositorio para poder alojar la imagen de Docker, y finalmente se crean las funciones lambda.
-Para activar estas funciones se ha utilizado Eventbridge, el cual se ejecuta cada mañana de lunes a viernes a las 9:00AM. Las funciones son las siguientes:
+Para activar estas funciones se ha utilizado Eventbridge, el cual se ejecuta cada mañana de lunes a viernes a las 10:00AM. Las funciones son las siguientes:
 
  - **Web Scraping de Datos**: Esta función realiza web scraping en la página de MEFF para obtener datos de opciones y futuros del MINI IBEX y los almacena en un bucket de S3.
  - **Cálculo de Volatilidad Implícita**: La segunda función Lambda accede a estos datos almacenados en S3, calcula la volatilidad implícita para cada opción utilizando modelos financieros avanzados, y guarda los resultados en una base de datos DynamoDB. Un aviso por correo electrónico es enviado automáticamente una vez que estas tareas se completan.
@@ -88,6 +88,21 @@ Este gráfico tridimensional interativo permite a los usuarios entender cómo la
 - **Chatbot**: Para soporte adicional y educación sobre volatilidad implícita, la interfaz incluye un chatbot que puede responder preguntas frecuentes y proporcionar explicaciones sobre términos y conceptos relacionados con la volatilidad. Esta funcionalidad busca hacer la experiencia de usuario más accesible y enriquecedora, especialmente para aquellos nuevos en el análisis de mercados financieros.
 A continuación se muestra una imagen del chatbot.
 ![Chatbot](imagenes/chatbot.png)
+
+
+## Despliegue automatizado con Terraform
+
+Este proyecto utiliza Terraform para automatizar la creación y gestión de la infraestructura necesaria en AWS, asegurando un despliegue consistente y reproducible del entorno. El archivo de Terraform define y configura todos los recursos necesarios, como funciones Lambda, buckets de S3, tablas de DynamoDB, repositorios ECR, y la instancia EC2 que hospeda la aplicación web.
+
+
+### Archivos de Terraform
+
+Los archivos de Terraform están estructurados para proporcionar una creación clara y mantenible de la infraestructura en la nube:
+
+- **Archivos .tf**: Contienen la definición de todos los recursos de AWS utilizados en el proyecto, incluyendo configuraciones de seguridad, políticas de IAM y detalles de red.
+- **Despliegue**: Para desplegar o actualizar la infraestructura, simplemente ejecuta los comandos terraform init, seguido de terraform plan y terraform apply dentro del directorio que contiene los archivos de Terraform.
+
+El uso de Terraform facilita la gestión de la infraestructura como código, permitiendo actualizaciones y cambios de configuración de manera controlada y documentada, lo que reduce el riesgo de errores humanos y aumenta la eficiencia del despliegue.
 
 
 ## Prerrequisitos
