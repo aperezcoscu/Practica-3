@@ -2,20 +2,19 @@ Conexión AWS:
 aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 975050217121.dkr.ecr.eu-west-3.amazonaws.com
 
 Imagen docker: 
-docker build -t app_volatility .
-docker tag app_volatility:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/app_volatility_ecr/:latest
+docker build -t api_dynamo .
+docker tag api_dynamo:latest 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
 
 
 Creamos ECR en aws:
-aws ecr create-repository --repository-name app_volatility_ecr --region eu-west-3
-
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest
+aws ecr create-repository --repository-name api_dynamo_ecr --region eu-west-3
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
 
 
 
 Para actualizar la imagen en docker y subirla a ECR
-docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest .
-docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/volatility_ecr:latest
+docker build -t 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest .
+docker push 975050217121.dkr.ecr.eu-west-3.amazonaws.com/api_dynamo_ecr:latest
 
 
 
@@ -42,3 +41,12 @@ Ver si se está ejecutando bien: docker logs b92f682834db
 b92f682834db es el id del contenedor
 
 Parar docker: docker stop c92e15498b53
+
+
+
+APIS:
+
+Conectar API: uvicorn creacion_api:app --reload
+
+Apis conectadas: ps aux | grep uvicorn
+Detener API kill 1234
