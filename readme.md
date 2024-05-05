@@ -1,5 +1,11 @@
 # Aplicación de Análisis de Volatilidad Implícita
 
+## Accesos directos
+
+ - **Interfaz web:** http://13.37.203.83:8050/
+ - **Repositorio github:** https://github.com/aperezcoscu/Practica-3.git
+
+
 ## Descripción
 Este proyecto es una aplicación web que tiene el objetivo de proporcionar análisis sobre la volatilidad implícita de las opciones del MINI IBEX. Para lograrlo, he integrado una serie de servicios de Amazon Web Services (AWS), entre ellos Lambda, ECR, DynamoDB, S3, EC2, EventBridge y el Simple Notification Service (SNS). Cada uno de estos servicios juega un papel importante en el procesamiento y almacenamiento de los datos, así como en la ejecución y manejo de la aplicación.
 
