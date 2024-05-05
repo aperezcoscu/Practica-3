@@ -22,6 +22,7 @@ La interfaz de usuario de la aplicación está diseñada para ser intuitiva y f�
   - **Función de Web Scraping**: Se ejecuta según un cron de AWS EventBridge a las 9:00 AM de lunes a viernes, guarda los datos en el S3 bucket.
   - **Función de Cálculo de Volatilidad**: Procesa los datos del S3 bucket, calcula la volatilidad y los almacena en DynamoDB.
 - **AWS EventBridge**: Programa las funciones Lambda con un cron específico.
+- **SNS**: Al finalizar la ejecución de las funciones lambda, se envía un correo notificando de esto.
 - **Almacenamiento AWS**:
   - **S3 Bucket (`scrap-miax-12`)**: Almacena los datos extraídos por la función de web scraping.
   - **DynamoDB**: Almacena los resultados de la volatilidad calculados por la función de cálculo de volatilidad.
@@ -55,7 +56,8 @@ Una vez ejecutadas las lambdas, mediande SNS, se envía un correo a una direcci�
 ### API Local y Frontend
 **API local**
 Una API desarrollada localmente en la instancia EC2 permite acceder de forma segura a los datos de S3 y DynamoDB. Esta API es el puente entre los datos almacenados y la interfaz de usuario, asegurando que los usuarios tengan acceso a la información actualizada y relevante.
-
+A continuación se muestra una imagen de la interfaz:
+![Interfaz de usuario](interfaz.png)
 
 ## Características de la Interfaz de Usuario
 
