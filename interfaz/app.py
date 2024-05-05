@@ -283,9 +283,9 @@ def crear_grafico(df, subyacente, tipo_opcion):
     return plot_surface(T_type, M_type, IV_type)
 
 
+
 # Establecer estilos de la aplicación y componentes externos
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-
 
 
 # Obtenemos datos
