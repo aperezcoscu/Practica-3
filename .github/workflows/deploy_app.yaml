@@ -4,12 +4,14 @@ on:
   push:
     branches:
       - main
-  pull_request:     
-    branches:       
-      - main 
     paths:
       - 'interfaz/**'
-
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'interfaz/**'
+      
 env:
   AWS_REGION: eu-west-3
 
